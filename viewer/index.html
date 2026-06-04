@@ -3403,6 +3403,14 @@ async function loadExamFromApi() {
     const res = await fetch(`/api/exam?id=${encodeURIComponent(selectedExamId)}`);
     const payload = await res.json();
 
+    if (!res.ok) {
+      const detailLines = [];
+      if (payload?.error) detailLines.push(payload.error);
+      if (payload?.next_steps?.length) detailLines.push('', 'Next steps:', ...payload.next_steps.map(step => `- ${step}`));
+      const message = detailLines.length ? detailLines.join('\n') : 'Failed to load exam analysis.';
+      throw new Error(message);
+    }
+
     activateStep(1);
     bar.style.width = '35%';
     status.textContent = 'Building windows and tracks…';
@@ -3430,7 +3438,9 @@ async function loadExamFromApi() {
     setTimeout(finishLoading, 300);
   } catch (err) {
     console.error(err);
-    alert('Failed to load exam analysis.');
+    const detail = err instanceof Error ? err.message : 'Failed to load exam analysis.';
+    const lines = detail.split('\n').filter(Boolean);
+    alert(lines.join('\n'));
     resetToUpload();
   }
 }
