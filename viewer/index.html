@@ -1,0 +1,4585 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Neurogram — EEG Review</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@font-face {
+  font-family: 'Helvetica Neue';
+  src: url('/viewer/fonts/HelveticaNeueLight.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Helvetica Neue';
+  src: url('/viewer/fonts/HelveticaNeueBold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:        #8C9E8A;
+  --card:      #FFFFFF;
+  --card-dark: #1A1A1A;
+  --card-mid:  #F0F0ED;
+  --accent:    #C8F135;
+  --accent-dk: #A8D020;
+  --text:      #1A1A1A;
+  --text-2:    #6B6B6B;
+  --text-3:    #A0A0A0;
+  --text-inv:  #FFFFFF;
+  --border:    rgba(0,0,0,0.08);
+  --border2:   rgba(0,0,0,0.05);
+  --red:       #E85B4A;
+  --radius:    20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --radius-xs: 8px;
+  --font:      'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+  --mono:      'DM Mono', monospace;
+  --shadow:    0 2px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.14);
+  --trace:     #344240;
+  --trace-soft:#4D5C5A;
+  --grid-major:rgba(159, 173, 188, 0.24);
+  --grid-minor:rgba(159, 173, 188, 0.14);
+  --grid-row:  rgba(125, 142, 160, 0.42);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── TOOLBAR ──────────────────────────────────────────────────────── */
+#toolbar {
+  background: var(--card);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 62px;
+  z-index: 10;
+  box-shadow: 0 1px 0 var(--border), var(--shadow);
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+}
+#toolbar .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 0 8px;
+}
+.toolbar-group--viewer-left,
+.toolbar-group--viewer-middle,
+.toolbar-group--viewer-right {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+.toolbar-group--controls {
+  gap: 5px;
+}
+.toolbar-group--actions {
+  gap: 10px;
+  padding-left: 18px;
+}
+.toolbar-group + .toolbar-group {
+  margin-left: 18px;
+  position: relative;
+}
+.toolbar-group + .toolbar-group::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+}
+.toolbar-spacer {
+  flex: 1 1 auto;
+  min-width: 12px;
+}
+.toolbar-account {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.toolbar-account.visible {
+  display: flex;
+}
+body.viewer-active .toolbar-account {
+  display: none !important;
+}
+.toolbar-account-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.logo svg {
+  width: 122px;
+  height: auto;
+  display: block;
+}
+.logo .badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--card-dark);
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 100px;
+  letter-spacing: 0.08em;
+}
+
+.tb-btn {
+  height: 34px;
+  padding: 0 11px;
+  border: 1.5px solid var(--border);
+  border-radius: 100px;
+  background: var(--card-mid);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-family: var(--font);
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-2);
+  white-space: nowrap;
+  text-align: center;
+  transition: all 0.15s;
+}
+.tb-btn:hover {
+  background: var(--card);
+  color: var(--text);
+  border-color: rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.tb-btn.active {
+  background: var(--accent);
+  border-color: var(--accent-dk);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.tb-select {
+  height: 34px;
+  padding: 0 22px 0 9px;
+  border: 1.5px solid var(--border);
+  border-radius: 100px;
+  background: var(--card-mid);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23A0A0A0'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  font-size: 11px;
+  font-family: var(--font);
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+#toolbar-viewer {
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  overflow: visible;
+  align-items: center;
+  gap: 0;
+}
+.toolbar-viewer-spacer {
+  flex: 1 1 64px;
+  min-width: 28px;
+}
+#toolbar-viewer .tb-label {
+  font-size: 10px;
+}
+.tb-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-3);
+  white-space: nowrap;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+#time-lbl {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--card-dark);
+  color: var(--text-inv);
+  padding: 4px 12px;
+  border-radius: 100px;
+  min-width: 130px;
+  text-align: center;
+  display: none;
+}
+#btn-save {
+  background: var(--card-dark) !important;
+  color: var(--text-inv) !important;
+  border-color: var(--card-dark) !important;
+  display: none;
+}
+#btn-save:hover { background: #333 !important; }
+#toolbar-viewer { display: none; }
+
+/* ── STATES ──────────────────────────────────────────────────────── */
+#app {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* state layer */
+.state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.state.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── UPLOAD STATE ────────────────────────────────────────────────── */
+#state-upload {
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+}
+
+#state-exams {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 20px;
+}
+.exam-list-shell {
+  background: rgba(255,255,255,0.78);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.exam-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.exam-list-title {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.03em;
+}
+.exam-list-sub {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.th-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(0,0,0,0.18);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  background: rgba(255,255,255,0.8);
+  cursor: help;
+  vertical-align: middle;
+  flex: 0 0 auto;
+}
+.floating-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 280px;
+  min-width: 220px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(26,26,26,0.94);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.floating-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.exam-list-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.exam-list-actions .tb-btn {
+  min-width: 122px;
+}
+.exam-list-view,
+.ai-control-view {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  flex: 1;
+}
+.ai-control-view {
+  overflow: auto;
+  padding-right: 4px;
+}
+.ai-control-view[hidden],
+.exam-list-view[hidden] {
+  display: none;
+}
+.ai-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.ai-card {
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ai-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.ai-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.03em;
+}
+.ai-card-sub {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.ai-section {
+  background: rgba(255,255,255,0.86);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ai-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ai-section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ai-section-sub {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.ai-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ai-feature-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ai-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.ai-metric-panel {
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ai-metric-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ai-metric-sub {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.ai-type-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-type-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 90px) 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+}
+.ai-type-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+.ai-type-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+.ai-type-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+.ai-type-value,
+.ai-type-count {
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 600;
+}
+.ai-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.ai-insight-card {
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ai-insight-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.ai-insight-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ai-insight-sub {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+@media (max-width: 1200px) {
+  .ai-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ai-metrics-grid,
+  .ai-insight-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.profile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12,18,14,0.28);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 24px;
+}
+.profile-modal-overlay.open { display: flex; }
+.profile-modal {
+  width: min(520px, 100%);
+  background: rgba(255,255,255,0.96);
+  border-radius: 28px;
+  box-shadow: var(--shadow-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.profile-modal-header {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.profile-modal-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+.profile-modal-sub {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+.profile-close {
+  border:none;
+  background:transparent;
+  color:var(--text-2);
+  font-size:24px;
+  cursor:pointer;
+  padding:4px;
+}
+.profile-grid {
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.profile-field label {
+  display:block;
+  font-size:11px;
+  font-weight:700;
+  color:var(--text-3);
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  margin-bottom:6px;
+}
+.profile-input {
+  width:100%;
+  height:48px;
+  border-radius:18px;
+  border:1px solid rgba(0,0,0,0.14);
+  background:#F8F7F2;
+  padding:0 14px;
+  font: inherit;
+  color: var(--text);
+}
+.profile-readonly {
+  min-height:48px;
+  border-radius:18px;
+  border:1px solid rgba(0,0,0,0.08);
+  background:#F8F7F2;
+  padding:12px 14px;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+}
+.profile-actions {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.profile-msg {
+  font-size:13px;
+  min-height:18px;
+}
+.profile-msg.error { color:#B53A2D; }
+.profile-msg.success { color:#23713A; }
+.exam-table-wrap {
+  overflow: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.82);
+}
+.exam-table {
+  width: max-content;
+  border-collapse: collapse;
+  min-width: 840px;
+  table-layout: fixed;
+}
+.exam-table th,
+.exam-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  text-align: left;
+  font-size: 13px;
+}
+.exam-table th {
+  position: sticky;
+  top: 0;
+  background: #F8F7F2;
+  color: var(--text-3);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  z-index: 1;
+  user-select: none;
+  white-space: nowrap;
+  overflow: visible;
+}
+.exam-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.exam-table th.sortable {
+  cursor: pointer;
+}
+.exam-th-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  position: relative;
+  min-height: 24px;
+  padding-right: 48px;
+}
+.exam-th-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.15;
+  flex: 1 1 auto;
+}
+.exam-th-text {
+  display: inline-block;
+}
+.exam-sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  color: rgba(0,0,0,0.28);
+  font-size: 10px;
+  flex: 0 0 auto;
+}
+.exam-sort-indicator.active {
+  color: var(--text);
+}
+.exam-col-resize {
+  position: absolute;
+  top: -14px;
+  right: 0;
+  width: 14px;
+  height: calc(100% + 28px);
+  cursor: col-resize;
+  z-index: 3;
+}
+.exam-col-resize::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  right: 5px;
+  width: 2px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0);
+  transition: background 0.15s ease;
+}
+.exam-col-resize:hover::after,
+.exam-col-resize.is-active::after {
+  background: rgba(0,0,0,0.18);
+}
+.exam-th-meta {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  position: absolute;
+  top: 0;
+  right: 14px;
+  flex: 0 0 auto;
+  padding-top: 1px;
+  background: #F8F7F2;
+}
+.exam-th-meta .th-help {
+  width: 15px;
+  height: 15px;
+  font-size: 9px;
+}
+.exam-th-meta .exam-sort-indicator {
+  width: 10px;
+  font-size: 9px;
+}
+.exam-table tr:hover td {
+  background: rgba(200,241,53,0.08);
+}
+.exam-row-btn {
+  border: none;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  width: 100%;
+}
+.exam-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.status-ready { background: #EAF8EA; color: #23713A; }
+.status-processing_ai, .status-in_progress { background: #FFF3DD; color: #8A5A12; }
+.status-uploaded, .status-not_started { background: #EFF2F5; color: #66727E; }
+.status-completed { background: #EAF8EA; color: #23713A; }
+.status-mismatch { background: #FDEDEC; color: #B53A2D; }
+.status-error { background: #FEECEB; color: #B53A2D; }
+.empty-state {
+  padding: 36px;
+  text-align: center;
+  color: var(--text-2);
+}
+
+#state-auth {
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+}
+
+.auth-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.auth-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+}
+.auth-sub {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.auth-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  background: #F7F5EF;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text);
+}
+.auth-error {
+  min-height: 18px;
+  color: #C73C2E;
+  font-size: 12px;
+}
+.auth-meta {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.toolbar-user {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+.toolbar-user-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.upload-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 56px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  max-width: 540px;
+  width: 100%;
+  transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
+}
+.upload-card.drag-over {
+  box-shadow: 0 0 0 3px var(--accent-dk), var(--shadow-lg);
+  transform: scale(1.01);
+}
+
+.upload-icon {
+  width: 80px;
+  height: 80px;
+  background: var(--card-mid);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.upload-card.drag-over .upload-icon { background: #e8f6c0; }
+
+.upload-icon svg {
+  width: 46px;
+  height: 38px;
+  opacity: 0.68;
+  transition: opacity 0.2s;
+}
+.upload-card.drag-over .upload-icon svg { opacity: 0.85; }
+
+.upload-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+.upload-sub {
+  font-size: 14px;
+  color: var(--text-2);
+  text-align: center;
+  line-height: 1.5;
+  max-width: 340px;
+}
+.upload-sub strong { color: var(--text); font-weight: 600; }
+
+.upload-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: var(--mono);
+  background: var(--card-mid);
+  padding: 6px 14px;
+  border-radius: 100px;
+}
+
+#file-input { display: none; }
+
+.btn-primary {
+  height: 48px;
+  padding: 0 32px;
+  background: var(--accent);
+  color: var(--text);
+  border: none;
+  border-radius: 100px;
+  font-size: 15px;
+  font-family: var(--font);
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 20px rgba(168,208,32,0.45);
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-dk);
+  box-shadow: 0 6px 28px rgba(168,208,32,0.55);
+  transform: translateY(-2px);
+}
+.btn-primary:disabled {
+  background: var(--card-mid);
+  color: var(--text-3);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-primary svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.file-pill {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: var(--card-mid);
+  border: 1.5px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 14px 6px 10px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text);
+  max-width: 360px;
+  overflow: hidden;
+}
+.file-pill.visible { display: flex; }
+.file-pill-dot {
+  width: 8px; height: 8px;
+  background: var(--accent-dk);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.file-pill-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-pill-clear {
+  width: 18px; height: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.file-pill-clear:hover { color: var(--red); }
+
+/* bottom info cards */
+.info-row {
+  display: flex;
+  gap: 12px;
+  max-width: 540px;
+  width: 100%;
+}
+.info-card {
+  flex: 1;
+  background: rgba(255,255,255,0.45);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  backdrop-filter: blur(8px);
+}
+.info-card-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.info-card-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.info-card-value small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-left: 2px;
+}
+
+/* ── LOADING STATE ───────────────────────────────────────────────── */
+#state-loading {
+  flex-direction: column;
+  gap: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.loading-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 52px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: 480px;
+  width: 100%;
+}
+
+.loading-brain {
+  width: 72px;
+  height: 72px;
+  position: relative;
+}
+.loading-brain svg {
+  width: 72px;
+  height: 72px;
+  opacity: 0.35;
+}
+.loading-pulse {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2.5px solid var(--accent);
+  animation: pulse-ring 1.6s ease-out infinite;
+}
+.loading-pulse:nth-child(2) { animation-delay: 0.5s; }
+@keyframes pulse-ring {
+  0%   { transform: scale(0.85); opacity: 0.8; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+
+.loading-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.loading-status {
+  font-size: 13px;
+  color: var(--text-2);
+  font-family: var(--mono);
+  text-align: center;
+  min-height: 20px;
+}
+
+/* progress bar */
+.progress-wrap {
+  width: 100%;
+  background: var(--card-mid);
+  border-radius: 100px;
+  height: 8px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 100px;
+  width: 0%;
+  transition: width 0.12s linear;
+  box-shadow: 0 0 10px rgba(168,208,32,0.6);
+}
+
+.progress-label {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text-3);
+  align-self: flex-end;
+}
+
+/* loading steps */
+.loading-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.loading-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-3);
+  transition: color 0.3s;
+}
+.loading-step.done { color: var(--text-2); }
+.loading-step.active { color: var(--text); font-weight: 600; }
+.step-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--card-mid);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.loading-step.done  .step-dot { background: var(--accent-dk); }
+.loading-step.active .step-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(200,241,53,0.25);
+  animation: dot-pulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes dot-pulse {
+  from { transform: scale(0.85); }
+  to   { transform: scale(1.2);  }
+}
+
+/* ── VIEWER STATE ────────────────────────────────────────────────── */
+#state-viewer {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+  overflow: hidden;
+}
+#state-viewer.active { display: flex; }
+
+#viewer-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  padding: 10px;
+  gap: 10px;
+}
+
+#eeg-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #FAFBFD;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+#canvas-wrap { flex: 1; position: relative; overflow: hidden; }
+#eeg-canvas { display: block; }
+
+#timeline-wrap {
+  height: 56px;
+  background: #11161d;
+  border-radius: 0 0 var(--radius) var(--radius);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+#tl-canvas { display: block; }
+
+/* ── RESULTS PANEL ───────────────────────────────────────────────── */
+#results-panel {
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.12) transparent;
+}
+
+.rp-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  flex-shrink: 0;
+}
+.rp-card h3 {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}
+.rp-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+.rp-field-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 10px 0 6px;
+}
+.rp-input, .rp-textarea, .rp-select-lite {
+  width: 100%;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  background: #F7F5EF;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--text);
+}
+.rp-textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip-btn {
+  border: 1.5px solid rgba(0,0,0,0.12);
+  background: #F7F5EF;
+  color: #6C6C67;
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.chip-btn.active {
+  background: var(--accent);
+  color: #253000;
+  border-color: #BEDB3A;
+}
+.grade-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+.grade-btn {
+  border: 1.5px solid rgba(0,0,0,0.12);
+  background: #F7F5EF;
+  color: #6C6C67;
+  border-radius: 12px;
+  min-height: 44px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.grade-btn.active {
+  background: var(--accent);
+  color: #253000;
+  border-color: #BEDB3A;
+}
+.rp-save-btn, .rp-secondary-btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  min-height: 50px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rp-save-btn {
+  background: var(--accent);
+  color: #1f2600;
+  margin-top: 12px;
+}
+.rp-secondary-btn {
+  background: #F7F5EF;
+  color: #6C6C67;
+  border: 1.5px solid rgba(0,0,0,0.12);
+}
+.saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.saved-item {
+  border-top: 1px solid rgba(0,0,0,0.08);
+  padding-top: 12px;
+  cursor: pointer;
+}
+.saved-item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.saved-item.active {
+  background: rgba(200,241,53,0.08);
+  border-radius: 12px;
+  padding: 10px;
+}
+.saved-time {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.saved-label {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.window-pill {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-inv);
+  font-family: var(--mono);
+  background: var(--card-dark);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+/* prediction badge */
+.pred-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--card-mid);
+  margin-bottom: 8px;
+}
+.pred-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pred-label {
+  font-size: 14px;
+  font-weight: 700;
+  flex: 1;
+}
+.pred-conf {
+  font-size: 11px;
+  color: var(--text-2);
+  font-family: var(--mono);
+}
+
+/* label classes color map */
+.lbl-seizure { background: #FEECEB; color: #c0392b; }
+.lbl-seizure .pred-dot { background: #E85B4A; }
+.lbl-gpd     { background: #EBF4FD; color: #1a5f8e; }
+.lbl-gpd     .pred-dot { background: #2196F3; }
+.lbl-lpd     { background: #F3EBFD; color: #6a1a8e; }
+.lbl-lpd     .pred-dot { background: #9C27B0; }
+.lbl-lrda    { background: #FEF6E8; color: #8e5a1a; }
+.lbl-lrda    .pred-dot { background: #FF9800; }
+.lbl-grda    { background: #FEEDE8; color: #8e2e1a; }
+.lbl-grda    .pred-dot { background: #FF5722; }
+.lbl-normal  { background: #EDFAEE; color: #1a6b2a; }
+.lbl-normal  .pred-dot { background: #4CAF50; }
+.lbl-other   { background: var(--card-mid); color: var(--text-2); }
+.lbl-other   .pred-dot { background: #9E9E9E; }
+
+/* timeline annotation track */
+.ann-track {
+  margin-top: 4px;
+}
+.ann-track-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+.ann-track-bar {
+  height: 18px;
+  background: var(--card-mid);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 5px;
+}
+.ann-seg {
+  position: absolute;
+  top: 0; bottom: 0;
+  border-radius: 3px;
+  opacity: 0.85;
+}
+.ann-seg-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+  padding: 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* stats mini */
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border2);
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-lbl { font-size: 12px; color: var(--text-2); }
+.stat-val {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--text);
+}
+.stat-val.good { color: #2e7d32; }
+.stat-val.warn { color: #e65100; }
+
+/* ── COMPARISON STRIP ────────────────────────────────────────────── */
+#cmp-strip {
+  height: 0;
+  background: var(--card-dark);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+  transition: height 0.3s ease;
+  flex-shrink: 0;
+}
+#cmp-strip.visible { height: 112px; }
+#cmp-canvas { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ── TOOLBAR ──────────────────────────────────────────────────────── -->
+<div id="toolbar">
+  <span class="logo">
+    <svg viewBox="0 0 307 62" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Neurogram">
+      <path d="M74.4432 29.244L64.804 10.5678C64.6569 10.2902 64.4257 10.0618 64.142 9.92478L44.3312 0.152719C44.051 0.0156781 43.7322 -0.0300012 43.424 0.0191929L24.1771 3.28709C23.9109 3.33277 23.6517 3.42061 23.4135 3.54711L11.0703 10.1497C10.8111 10.2902 10.5834 10.4835 10.4083 10.7224L0.341736 24.2684C0.0229973 24.6971 -0.0785792 25.2452 0.0615258 25.7618L4.20163 40.8327C4.32772 41.286 4.72002 41.6128 5.18937 41.648L18.2261 42.6354C18.5169 42.6564 18.7831 42.8146 18.9407 43.0605L22.8321 49.006C23.0107 49.2766 23.2664 49.4839 23.5676 49.5963L34.2927 53.6619C34.5308 53.7532 34.7935 53.7638 35.0387 53.69L43.6132 51.4025C43.8653 51.3287 44.1385 51.4165 44.3032 51.6273L50.9722 60.6826C51.424 61.2659 52.3067 61.2413 52.727 60.6369L55.6377 56.357C55.8268 56.0689 56.093 55.837 56.4047 55.6859L62.9196 52.555C63.1158 52.4601 63.2804 52.3055 63.382 52.1123L67.0807 45.2145C67.1788 45.0353 67.3294 44.8913 67.5151 44.8069L70.4748 43.6509C70.7024 43.549 70.8741 43.3487 70.9406 43.1062L74.5658 30.4001C74.6744 30.01 74.6289 29.5954 74.4397 29.2405L74.4432 29.244ZM64.6079 14.4928L70.8215 27.0795C70.8881 27.213 70.9406 27.3571 70.9616 27.5082C71.0527 28.1371 70.6919 28.5904 69.9879 28.5869L55.7462 27.6101C55.0212 27.5609 54.6254 26.7421 55.0317 26.1378L62.9862 14.3769C63.389 13.7795 64.2891 13.8392 64.6079 14.4893V14.4928ZM27.9809 4.59073L42.3242 2.09237C42.9862 1.97642 43.6692 2.0748 44.2716 2.37348L61.0667 10.7084C61.8548 11.1019 62.1245 12.0964 61.6377 12.8343L52.8986 26.0921C52.4888 26.714 51.6272 26.8335 51.0632 26.3486L27.5676 6.09115C27.0177 5.61678 27.2664 4.71372 27.9809 4.58722V4.59073ZM25.3119 9.17633C25.403 8.3576 26.3662 7.96404 27.0037 8.48761L48.8531 26.8159C49.466 27.3184 49.3154 28.3023 48.5764 28.5939L23.6412 38.4785C22.9126 38.7666 22.1386 38.1728 22.2261 37.3927L25.3084 9.17633H25.3119ZM13.6412 40.3549L6.94068 40.014C6.49585 39.9824 6.06502 39.5853 5.89339 39.0793L3.70075 31.2715C3.55715 30.263 4.75154 29.6305 5.5011 30.3157L14.3943 38.4644C15.1368 39.1426 14.643 40.3795 13.6412 40.3549ZM18.2927 39.118L3.40653 25.9691C2.75504 25.3928 2.64996 24.4089 3.16485 23.7097L11.2419 12.7324C11.6132 12.2299 12.0965 11.8188 12.6535 11.5376L22.2226 6.67445C22.8846 6.33712 23.6482 6.88177 23.5571 7.61617L19.6552 38.6014C19.5711 39.2585 18.7901 39.5572 18.2927 39.118ZM34.769 50.784C34.4958 51.167 33.9984 51.3216 33.5571 51.1565L25.6797 48.2224C24.8111 47.8991 24.079 47.2912 23.6027 46.4936L21.2629 42.5932C20.9652 42.0977 21.1859 41.4512 21.7253 41.2439L46.4748 31.6299C47.2944 31.3102 48.023 32.2554 47.5116 32.9722L34.7725 50.784H34.769ZM44.6289 48.8092L40.2016 50.2675C39.2909 50.5662 38.5308 49.5225 39.0913 48.746L50.4888 32.9125C50.8846 32.3292 51.7813 32.5189 51.9144 33.2077L53.7182 42.66C53.8093 43.1308 53.5921 43.6087 53.1788 43.8512L45.0072 48.6476C44.8881 48.7179 44.7585 48.7706 44.6219 48.8092H44.6289ZM53.7848 55.9283L52.7165 57.5412C52.3102 58.1526 51.417 58.1596 51.0037 57.5552L46.6149 51.1495C46.3067 50.6997 46.4363 50.0813 46.8986 49.7966L52.7165 46.5322C53.2068 46.2546 53.8198 46.585 53.8618 47.1507L54.3522 53.7567C54.4082 54.5228 54.2086 55.2853 53.7848 55.9283ZM64.1035 46.2582L62.0334 50.5275C61.9144 50.7735 61.7217 50.9808 61.4835 51.1143L57.5221 52.924C56.9652 53.2367 56.2751 52.8537 56.2436 52.2142L55.9634 45.956C55.9354 45.4008 56.3767 44.9405 56.9301 44.9405L63.5186 45.2356C64.0405 45.2356 64.3697 45.8049 64.107 46.2582H64.1035ZM71.7707 31.8267L69.2979 41.4723C69.2138 41.7956 68.9897 42.0626 68.6849 42.2032L66.9476 43.0008C66.6044 43.1589 66.2331 43.2397 65.8548 43.2397H56.4818C56.086 43.2397 55.7497 42.9551 55.6902 42.5721L53.7568 30.632C53.6727 30.1049 54.1035 29.6376 54.6394 29.6692L70.9441 30.6988C71.5151 30.7339 71.9144 31.275 71.7742 31.8267H71.7707Z" fill="black"/>
+      <path d="M114.184 40.6184H110.478L98.7094 26.9073C98.7094 26.9073 98.4397 26.8616 98.4397 26.9987V40.6184H94.0334V18.9519C94.0334 18.9519 94.1 18.7938 94.191 18.7938H97.6481C97.6481 18.7938 97.7392 18.7938 97.7847 18.8605L109.508 32.8879C109.508 32.8879 109.778 32.9336 109.778 32.7965V21.011C109.778 19.7636 110.772 18.7657 112.016 18.7657H114.026C114.026 18.7657 114.184 18.8324 114.184 18.9238V40.6184Z" fill="black"/>
+      <path d="M134.674 40.6184H121.505C120.195 40.6184 119.154 39.5537 119.154 38.2606V18.7692H134.608V22.782H123.561V27.7014H131.76V31.644H123.561V36.6091H134.674V40.6219V40.6184Z" fill="black"/>
+      <path d="M158.033 30.8499C158.033 36.9675 154.307 41.1174 148.681 41.1174C143.056 41.1174 139.102 36.971 139.102 30.8499V18.7692H141.34C142.538 18.7692 143.508 19.7425 143.508 20.9443V30.8253C143.508 34.4727 145.564 36.8551 148.66 36.8551C151.757 36.8551 153.585 34.4762 153.585 30.8253V18.7692H157.991V30.8253L158.037 30.8463L158.033 30.8499Z" fill="black"/>
+      <path d="M174.888 40.6184L168.72 32.5962H166.415V40.6184H162.009V21.0813C162.009 19.8128 163.049 18.7692 164.314 18.7692H171.431C176.107 18.7692 179.224 21.5346 179.224 25.681C179.224 29.3284 177.396 31.9356 173.599 32.5014L180.286 40.6149H174.888V40.6184ZM171.41 28.5834C173.466 28.5834 174.821 27.4063 174.821 25.681C174.821 23.9556 173.466 22.7785 171.41 22.7785H166.419V28.5799H171.41V28.5834Z" fill="black"/>
+      <path d="M249.935 40.6184L243.767 32.5962H241.462V40.6184H237.056V21.0813C237.056 19.8128 238.096 18.7692 239.361 18.7692H246.478C251.154 18.7692 254.271 21.5346 254.271 25.681C254.271 29.3284 252.443 31.9356 248.646 32.5014L255.333 40.6149H249.935V40.6184ZM246.457 28.5834C248.513 28.5834 249.869 27.4063 249.869 25.681C249.869 23.9556 248.513 22.7785 246.457 22.7785H241.466V28.5799H246.457V28.5834Z" fill="black"/>
+      <path d="M206.131 29.7395C206.131 36.0855 201.095 41.1174 194.678 41.1174C188.261 41.1174 183.224 36.1101 183.224 29.7395C183.224 23.3688 188.261 18.2948 194.678 18.2948C201.095 18.2948 206.131 23.3723 206.131 29.7395ZM201.704 29.7395C201.704 25.5685 198.632 22.4658 194.702 22.4658C190.772 22.4658 187.701 25.572 187.701 29.7395C187.701 33.9069 190.772 36.9464 194.702 36.9464C198.632 36.9464 201.704 33.9104 201.704 29.7395Z" fill="black"/>
+      <path d="M230.8 27.8806C231.841 27.8806 232.674 28.7415 232.674 29.7606C232.674 36.2436 227.567 41.0928 221.13 41.0928C214.692 41.0928 209.585 36.1066 209.585 29.6938C209.585 23.281 214.622 18.2948 221.018 18.2948C225.602 18.2948 230.506 21.1973 232.019 24.7322H226.485C225.49 23.2142 223.389 22.4658 221.018 22.4658C217.133 22.4658 214.082 25.5931 214.082 29.6938C214.082 33.7945 217.224 36.9675 221.287 36.9675C225.35 36.9675 228.019 33.8155 227.816 30.7796H220.18V28.9453C220.18 28.355 220.653 27.8806 221.242 27.8806H230.8Z" fill="black"/>
+      <path d="M275.553 40.6184L273.68 35.9485H264.079L262.159 40.6184H257.392L266.201 20.1747C266.562 19.3349 267.399 18.7938 268.303 18.7938H270.923L280.345 40.643H275.578L275.553 40.6184ZM268.618 24.7744L265.704 31.9356H272.03L269.137 24.7744C269.046 24.5495 268.73 24.5495 268.618 24.7744Z" fill="black"/>
+      <path d="M307 40.6184H302.709V29.107C302.709 28.8364 302.349 28.7451 302.212 28.9699L295.886 40.6184H293.897L287.053 28.0634V40.6184H282.762V18.7692H286.625L294.87 33.8647L302.303 20.3118C302.821 19.3595 303.816 18.7692 304.902 18.7692H306.979V40.6184H307Z" fill="black"/>
+    </svg>
+    <span class="badge">EEG</span>
+  </span>
+  <div class="sep"></div>
+
+  <!-- Upload toolbar (always visible) -->
+  <div id="toolbar-upload" style="display:flex;align-items:center;gap:6px;">
+    <span class="tb-label">Exame</span>
+    <select class="tb-select" id="sel-exam" style="width:260px">
+      <option value="">Choose an exam…</option>
+    </select>
+    <span class="tb-label">Arquivo</span>
+    <button class="tb-btn" id="btn-choose" onclick="document.getElementById('file-input').click()">Select .edf</button>
+  </div>
+
+  <!-- Viewer toolbar (shown after analysis) -->
+  <div id="toolbar-viewer" style="display:none;width:100%;">
+    <div class="toolbar-group toolbar-group--controls toolbar-group--viewer-left">
+      <span class="tb-label">Scale</span>
+      <select class="tb-select" id="sel-scale" style="width:82px">
+        <option value="10">10 μV</option>
+        <option value="20">20 μV</option>
+        <option value="50">50 μV</option>
+        <option value="70">70 μV</option>
+        <option value="100" selected>100 μV</option>
+        <option value="200">200 μV</option>
+        <option value="500">500 μV</option>
+        <option value="1000">1000 μV</option>
+      </select>
+      <span class="tb-label">Low</span>
+      <select class="tb-select" id="sel-low" style="width:78px">
+        <option value="0">None</option>
+        <option value="0.5" selected>0.5 Hz</option>
+        <option value="1">1 Hz</option>
+        <option value="2">2 Hz</option>
+        <option value="4">4 Hz</option>
+        <option value="8">8 Hz</option>
+        <option value="13">13 Hz</option>
+        <option value="20">20 Hz</option>
+        <option value="30">30 Hz</option>
+      </select>
+      <span class="tb-label">High</span>
+      <select class="tb-select" id="sel-high" style="width:92px">
+        <option value="-1">None</option>
+        <option value="4">~4 Hz (δ)</option>
+        <option value="8">~8 Hz (δ+θ)</option>
+        <option value="15">15 Hz</option>
+        <option value="30">30 Hz</option>
+        <option value="50">50 Hz</option>
+        <option value="70">70 Hz</option>
+        <option value="100" selected>100 Hz</option>
+      </select>
+      <span class="tb-label">Montage</span>
+      <select class="tb-select" id="sel-montage" style="width:96px">
+        <option value="cz" selected>CZ</option>
+        <option value="bipolar">Bipolar</option>
+        <option value="referential">Referential</option>
+      </select>
+      <div class="sep"></div>
+      <span class="tb-label">Window</span>
+      <select class="tb-select" id="sel-window" style="width:54px">
+        <option value="10">10 s</option>
+        <option value="20" selected>20 s</option>
+        <option value="30">30 s</option>
+      </select>
+    </div>
+    <div class="toolbar-viewer-spacer"></div>
+    <div class="toolbar-group toolbar-group--controls toolbar-group--viewer-middle">
+      <button class="tb-btn active" id="btn-pan">Pan</button>
+      <button class="tb-btn" id="btn-annotate">Annotate</button>
+      <button class="tb-btn" id="btn-select">Select</button>
+      <span class="tb-label">Type</span>
+      <select class="tb-select" id="sel-annotation-type" style="width:96px">
+        <option value="seizure">seizure</option>
+        <option value="gpd">gpd</option>
+        <option value="lpd">lpd</option>
+        <option value="lrda">lrda</option>
+        <option value="grda">grda</option>
+        <option value="normal">normal</option>
+        <option value="other">other</option>
+      </select>
+      <button class="tb-btn" id="btn-delete-annotation" disabled>Delete</button>
+      <button class="tb-btn" id="btn-cmp" onclick="toggleCmp()">Comparison</button>
+    </div>
+    <div class="toolbar-viewer-spacer"></div>
+    <div class="toolbar-group toolbar-group--actions toolbar-group--viewer-right">
+      <span id="time-lbl" style="display:flex;">00:00 – 00:20</span>
+      <button class="tb-btn" id="btn-new" onclick="returnToExamList()">← Exams</button>
+      <button class="tb-btn" id="btn-save" style="display:flex;">Export JSON</button>
+    </div>
+  </div>
+  <div class="toolbar-spacer"></div>
+  <div class="toolbar-account" id="toolbar-account">
+    <span class="toolbar-account-name" id="toolbar-account-name">—</span>
+    <button class="tb-btn" id="btn-profile" type="button">Profile</button>
+    <button class="tb-btn" id="btn-logout" type="button">Sign out</button>
+  </div>
+
+  <input type="file" id="file-input" accept=".edf">
+</div>
+
+<!-- ── APP ──────────────────────────────────────────────────────────── -->
+<div id="app">
+
+  <div id="state-auth" class="state">
+    <div class="auth-card">
+      <div class="auth-title">Neurogram AI Training</div>
+      <div class="auth-sub">Access the Neurogram platform to review exams, inspect AI analysis, and save annotations securely.</div>
+      <input class="auth-input" id="auth-email" type="email" autocomplete="email" placeholder="E-mail" />
+      <input class="auth-input" id="auth-password" type="password" autocomplete="current-password" placeholder="Password" />
+      <button class="btn-primary" id="btn-login" type="button" style="justify-content:center;">Sign in</button>
+      <div class="auth-error" id="auth-error"></div>
+      <div class="auth-meta">Secure web access powered by Supabase Auth.</div>
+    </div>
+  </div>
+
+  <div id="state-exams" class="state">
+    <div class="exam-list-shell">
+      <div class="exam-list-header">
+        <div>
+          <div class="exam-list-title">Exam List</div>
+          <div class="exam-list-sub" id="exam-list-sub">Loading exams…</div>
+        </div>
+        <div class="exam-list-actions">
+          <button class="tb-btn" id="btn-ai-view" type="button" style="display:none;">AI</button>
+          <button class="tb-btn" id="btn-refresh-exams" type="button">Refresh</button>
+        </div>
+      </div>
+      <div class="exam-list-view" id="exam-list-view">
+        <div class="exam-table-wrap">
+          <table class="exam-table">
+            <colgroup>
+              <col id="col-exam">
+              <col id="col-patient">
+              <col id="col-duration">
+              <col id="col-reviewed_by">
+              <col id="col-my_review">
+              <col id="col-ai_review">
+              <col id="col-consensus_review">
+              <col id="col-agreement_per_exam">
+              <col id="col-window_agreement">
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="sortable" data-sort-key="exam_code"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Exam</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="exam_code"></span></div></th>
+                <th class="sortable" data-sort-key="patient_code"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Patient</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="patient_code"></span></div></th>
+                <th class="sortable" data-sort-key="duration_seconds"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Duration</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="duration_seconds"></span></div></th>
+                <th class="sortable" data-sort-key="reviewed_by"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Reviewed by</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="reviewed_by"></span></div></th>
+                <th class="sortable" data-sort-key="my_review"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">My review</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="my_review"></span></div></th>
+                <th class="sortable" data-sort-key="ai_review"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">AI review</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="ai_review"></span></div></th>
+                <th class="sortable" data-sort-key="consensus_review"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Consensus review</span></span><span class="exam-th-meta"><span class="th-help" tabindex="0" data-tip="Consensus exists only when 2 or more doctors have the same final exam-level analysis. If all reviewed labels differ, the exam shows No consensus.">i</span><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="consensus_review"></span></div></th>
+                <th class="sortable" data-sort-key="agreement_per_exam"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Agreement per exam</span></span><span class="exam-th-meta"><span class="th-help" tabindex="0" data-tip="Compares the final AI review label with the final consensus review label for this exam.">i</span><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="agreement_per_exam"></span></div></th>
+                <th class="sortable" data-sort-key="window_agreement"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Window agreement</span></span><span class="exam-th-meta"><span class="th-help" tabindex="0" data-tip="Proportion of 10-second windows in this exam where the AI label matches the consensus label. This is an exam-level agreement measure, not the global F1 benchmark of the model.">i</span><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="window_agreement"></span></div></th>
+              </tr>
+            </thead>
+            <tbody id="exam-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="ai-control-view" id="ai-control-view" hidden>
+        <div class="ai-grid" id="ai-grid"></div>
+        <div class="ai-metrics-grid">
+          <div class="ai-metric-panel">
+            <div>
+              <div class="ai-metric-title">Average agreement by type</div>
+              <div class="ai-metric-sub">Average window agreement grouped by the final consensus label of each exam.</div>
+            </div>
+            <div class="ai-type-list" id="ai-type-agreement-list"></div>
+          </div>
+          <div class="ai-metric-panel">
+            <div>
+              <div class="ai-metric-title">Cobertura por tipo</div>
+              <div class="ai-metric-sub">How many exams with consensus fall into each final reviewed type.</div>
+            </div>
+            <div class="ai-type-list" id="ai-type-coverage-list"></div>
+          </div>
+        </div>
+        <div class="ai-insight-grid" id="ai-insight-grid"></div>
+        <div class="ai-section">
+          <div class="ai-section-head">
+            <div>
+              <div class="ai-section-title">Production model</div>
+              <div class="ai-section-sub">Operational summary of the current classifier and its comparison to consensus.</div>
+            </div>
+          </div>
+          <ul class="ai-feature-list" id="ai-feature-list"></ul>
+        </div>
+        <div class="ai-section">
+          <div class="ai-section-head">
+            <div>
+              <div class="ai-section-title">AI tools</div>
+              <div class="ai-section-sub">Entry points for downloads, audits, and future testing with new models.</div>
+            </div>
+          </div>
+          <div class="ai-actions">
+            <button class="tb-btn" id="btn-ai-download-json" type="button">Download summary JSON</button>
+            <button class="tb-btn" id="btn-ai-download-legacy" type="button">Download legacy reviews</button>
+            <button class="tb-btn" id="btn-ai-upload-model" type="button" disabled>Upload another model (coming soon)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE: UPLOAD ──────────────────────────────────────────────── -->
+  <div id="state-upload" class="state">
+    <div class="upload-card" id="drop-zone">
+      <div class="upload-icon">
+        <svg viewBox="0 0 75 62" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M74.4432 29.244L64.804 10.5678C64.6569 10.2902 64.4257 10.0618 64.142 9.92478L44.3312 0.152719C44.051 0.0156781 43.7322 -0.0300012 43.424 0.0191929L24.1771 3.28709C23.9109 3.33277 23.6517 3.42061 23.4135 3.54711L11.0703 10.1497C10.8111 10.2902 10.5834 10.4835 10.4083 10.7224L0.341736 24.2684C0.0229973 24.6971 -0.0785792 25.2452 0.0615258 25.7618L4.20163 40.8327C4.32772 41.286 4.72002 41.6128 5.18937 41.648L18.2261 42.6354C18.5169 42.6564 18.7831 42.8146 18.9407 43.0605L22.8321 49.006C23.0107 49.2766 23.2664 49.4839 23.5676 49.5963L34.2927 53.6619C34.5308 53.7532 34.7935 53.7638 35.0387 53.69L43.6132 51.4025C43.8653 51.3287 44.1385 51.4165 44.3032 51.6273L50.9722 60.6826C51.424 61.2659 52.3067 61.2413 52.727 60.6369L55.6377 56.357C55.8268 56.0689 56.093 55.837 56.4047 55.6859L62.9196 52.555C63.1158 52.4601 63.2804 52.3055 63.382 52.1123L67.0807 45.2145C67.1788 45.0353 67.3294 44.8913 67.5151 44.8069L70.4748 43.6509C70.7024 43.549 70.8741 43.3487 70.9406 43.1062L74.5658 30.4001C74.6744 30.01 74.6289 29.5954 74.4397 29.2405L74.4432 29.244ZM64.6079 14.4928L70.8215 27.0795C70.8881 27.213 70.9406 27.3571 70.9616 27.5082C71.0527 28.1371 70.6919 28.5904 69.9879 28.5869L55.7462 27.6101C55.0212 27.5609 54.6254 26.7421 55.0317 26.1378L62.9862 14.3769C63.389 13.7795 64.2891 13.8392 64.6079 14.4893V14.4928ZM27.9809 4.59073L42.3242 2.09237C42.9862 1.97642 43.6692 2.0748 44.2716 2.37348L61.0667 10.7084C61.8548 11.1019 62.1245 12.0964 61.6377 12.8343L52.8986 26.0921C52.4888 26.714 51.6272 26.8335 51.0632 26.3486L27.5676 6.09115C27.0177 5.61678 27.2664 4.71372 27.9809 4.58722V4.59073ZM25.3119 9.17633C25.403 8.3576 26.3662 7.96404 27.0037 8.48761L48.8531 26.8159C49.466 27.3184 49.3154 28.3023 48.5764 28.5939L23.6412 38.4785C22.9126 38.7666 22.1386 38.1728 22.2261 37.3927L25.3084 9.17633H25.3119ZM13.6412 40.3549L6.94068 40.014C6.49585 39.9824 6.06502 39.5853 5.89339 39.0793L3.70075 31.2715C3.55715 30.263 4.75154 29.6305 5.5011 30.3157L14.3943 38.4644C15.1368 39.1426 14.643 40.3795 13.6412 40.3549ZM18.2927 39.118L3.40653 25.9691C2.75504 25.3928 2.64996 24.4089 3.16485 23.7097L11.2419 12.7324C11.6132 12.2299 12.0965 11.8188 12.6535 11.5376L22.2226 6.67445C22.8846 6.33712 23.6482 6.88177 23.5571 7.61617L19.6552 38.6014C19.5711 39.2585 18.7901 39.5572 18.2927 39.118ZM34.769 50.784C34.4958 51.167 33.9984 51.3216 33.5571 51.1565L25.6797 48.2224C24.8111 47.8991 24.079 47.2912 23.6027 46.4936L21.2629 42.5932C20.9652 42.0977 21.1859 41.4512 21.7253 41.2439L46.4748 31.6299C47.2944 31.3102 48.023 32.2554 47.5116 32.9722L34.7725 50.784H34.769ZM44.6289 48.8092L40.2016 50.2675C39.2909 50.5662 38.5308 49.5225 39.0913 48.746L50.4888 32.9125C50.8846 32.3292 51.7813 32.5189 51.9144 33.2077L53.7182 42.66C53.8093 43.1308 53.5921 43.6087 53.1788 43.8512L45.0072 48.6476C44.8881 48.7179 44.7585 48.7706 44.6219 48.8092H44.6289ZM53.7848 55.9283L52.7165 57.5412C52.3102 58.1526 51.417 58.1596 51.0037 57.5552L46.6149 51.1495C46.3067 50.6997 46.4363 50.0813 46.8986 49.7966L52.7165 46.5322C53.2068 46.2546 53.8198 46.585 53.8618 47.1507L54.3522 53.7567C54.4082 54.5228 54.2086 55.2853 53.7848 55.9283ZM64.1035 46.2582L62.0334 50.5275C61.9144 50.7735 61.7217 50.9808 61.4835 51.1143L57.5221 52.924C56.9652 53.2367 56.2751 52.8537 56.2436 52.2142L55.9634 45.956C55.9354 45.4008 56.3767 44.9405 56.9301 44.9405L63.5186 45.2356C64.0405 45.2356 64.3697 45.8049 64.107 46.2582H64.1035ZM71.7707 31.8267L69.2979 41.4723C69.2138 41.7956 68.9897 42.0626 68.6849 42.2032L66.9476 43.0008C66.6044 43.1589 66.2331 43.2397 65.8548 43.2397H56.4818C56.086 43.2397 55.7497 42.9551 55.6902 42.5721L53.7568 30.632C53.6727 30.1049 54.1035 29.6376 54.6394 29.6692L70.9441 30.6988C71.5151 30.7339 71.9144 31.275 71.7742 31.8267H71.7707Z" fill="#1A1A1A"/>
+        </svg>
+      </div>
+
+      <div>
+        <div class="upload-title">Neurogram AI Training</div>
+      </div>
+
+      <div class="upload-sub">
+        Drag an <strong>.edf</strong> file here or click to select one.
+        The AI classifies each 10-second window and compares the
+        results with clinician annotations.
+      </div>
+
+      <select class="tb-select" id="upload-exam-select" style="width:100%;max-width:420px;height:42px;border-radius:14px;background-color:#fff;">
+        <option value="">Or choose a saved exam…</option>
+      </select>
+
+      <div class="file-pill" id="file-pill">
+        <div class="file-pill-dot"></div>
+        <span class="file-pill-name" id="file-pill-name">—</span>
+        <button class="file-pill-clear" onclick="clearFile(event)" title="Remover">✕</button>
+      </div>
+
+      <button class="btn-primary" id="btn-analyze" disabled onclick="startAnalysis()">
+        <svg viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M7 10l2.5 2.5L14 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Analisar
+      </button>
+
+      <div class="upload-hint">.edf · EDF+ · up to ~2 GB</div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-card">
+        <div class="info-card-title">Modelo</div>
+        <div class="info-card-value">LightGBM <small>v1</small></div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">F1-macro</div>
+        <div class="info-card-value">0.297</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Teto humano</div>
+        <div class="info-card-value">κ 0.256</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE: LOADING ─────────────────────────────────────────────── -->
+  <div id="state-loading" class="state">
+    <div class="loading-card">
+      <div class="loading-brain">
+        <div class="loading-pulse"></div>
+        <div class="loading-pulse"></div>
+        <svg viewBox="0 0 48 48" fill="none">
+          <path d="M8 32c0 4.4 3.6 8 8 8h16c4.4 0 8-3.6 8-8V22c0-2.2-1.8-4-4-4h-2c0-5.5-4.5-10-10-10S14 12.5 14 18h-2c-2.2 0-4 1.8-4 4v10z" fill="#1A1A1A" opacity=".15"/>
+          <path d="M6 26h4M10 26c0 0 1-4 4-4s4 4 4 4 1-6 4-6 4 6 4 6 1-4 4-4 4 4 4 4h4" stroke="#1A1A1A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <div class="loading-title">Processing EEG…</div>
+
+      <div class="loading-steps">
+        <div class="loading-step" id="step-read">
+          <div class="step-dot"></div>Reading EDF file
+        </div>
+        <div class="loading-step" id="step-segment">
+          <div class="step-dot"></div>Segmenting into 10-second windows
+        </div>
+        <div class="loading-step" id="step-feat">
+          <div class="step-dot"></div>Extracting spectral features
+        </div>
+        <div class="loading-step" id="step-predict">
+          <div class="step-dot"></div>Classifying with LightGBM
+        </div>
+        <div class="loading-step" id="step-render">
+          <div class="step-dot"></div>Rendering viewer
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+
+      <div class="loading-status" id="loading-status">Starting…</div>
+    </div>
+  </div>
+
+  <!-- STATE: VIEWER ──────────────────────────────────────────────── -->
+  <div id="state-viewer" class="state">
+    <div id="viewer-main">
+      <!-- EEG canvas area -->
+      <div id="eeg-area">
+        <div id="canvas-wrap"><canvas id="eeg-canvas"></canvas></div>
+        <div id="cmp-strip"><canvas id="cmp-canvas"></canvas></div>
+        <div id="timeline-wrap"><canvas id="tl-canvas"></canvas></div>
+      </div>
+
+      <!-- Results panel -->
+      <div id="results-panel">
+
+        <!-- Current window prediction -->
+        <div class="rp-card">
+          <h3>Current window</h3>
+          <div class="window-pill" id="rp-win-lbl">00:00 – 00:10</div>
+          <h3 style="margin-bottom:8px">AI prediction</h3>
+          <div class="pred-badge lbl-normal" id="pred-badge">
+            <div class="pred-dot"></div>
+            <span class="pred-label" id="pred-label">normal</span>
+            <span class="pred-conf" id="pred-conf">—</span>
+          </div>
+        </div>
+
+        <!-- Annotation tracks mini-map -->
+        <div class="rp-card" id="rp-tracks">
+          <h3>Exam annotations</h3>
+          <div id="track-container"></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="rp-card">
+          <h3>Statistics</h3>
+          <div id="stats-container"></div>
+        </div>
+
+        <!-- Legend -->
+        <div class="rp-card">
+          <h3>Legend</h3>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;" id="legend-container"></div>
+        </div>
+
+        <div class="rp-card">
+          <h3>Per-window fields</h3>
+          <div class="window-pill" id="annotation-window-pill">0:00 – 0:10</div>
+
+          <div class="rp-field-label">Occurrence type</div>
+          <select class="rp-select-lite" id="annotation-occurrence-type">
+            <option value="—">—</option>
+            <option value="Model correct">Model correct</option>
+            <option value="Model partially correct">Model partially correct</option>
+            <option value="False positive (model)">False positive (model)</option>
+            <option value="False negative (model)">False negative (model)</option>
+            <option value="Wrong type">Wrong type</option>
+            <option value="Temporal extent mismatch">Temporal extent mismatch</option>
+            <option value="Disagreement between doctors">Disagreement between doctors</option>
+            <option value="Uncertain">Uncertain</option>
+          </select>
+
+          <div class="rp-field-label">What the model marked</div>
+          <div class="chip-grid" id="model-marked-grid"></div>
+
+          <div class="rp-field-label">What you think (select all that apply)</div>
+          <div class="chip-grid" id="you-think-grid"></div>
+
+          <div class="rp-field-label">Looks lateralized?</div>
+          <div class="chip-grid" id="lateralized-grid"></div>
+
+          <div class="rp-field-label">Model grade 1–10</div>
+          <div class="grade-grid" id="model-grade-grid"></div>
+
+          <div class="rp-field-label">Comment</div>
+          <textarea class="rp-textarea" id="annotation-comment" placeholder="Free-text note for this window..."></textarea>
+
+          <button class="rp-save-btn" id="save-window-annotation">Save window annotation</button>
+        </div>
+
+        <div class="rp-card">
+          <h3>Observer agreement</h3>
+          <div class="rp-field-label">Agreement level</div>
+          <select class="rp-select-lite" id="observer-agreement-level">
+            <option value="—">—</option>
+            <option value="Full agreement">Full agreement</option>
+            <option value="Partial agreement">Partial agreement</option>
+            <option value="No agreement">No agreement</option>
+          </select>
+          <div class="rp-field-label" style="text-transform:none;letter-spacing:0;color:var(--text-2);font-size:11px;">Observer comment</div>
+          <textarea class="rp-textarea" id="observer-comment" placeholder="Observer notes..."></textarea>
+        </div>
+
+        <div class="rp-card">
+          <h3>Exam review</h3>
+          <div class="rp-field-label">Overall model grade (1–10)</div>
+          <div class="grade-grid" id="overall-grade-grid"></div>
+          <div class="rp-field-label" style="text-transform:none;letter-spacing:0;color:var(--text-2);font-size:11px;">General comments</div>
+          <textarea class="rp-textarea" id="overall-comment" placeholder="Overall exam comments..."></textarea>
+        </div>
+
+        <div class="rp-card">
+          <h3 id="saved-annotations-title">Saved annotations (0)</h3>
+          <button class="rp-secondary-btn" id="export-saved-annotations">↓ Export JSON</button>
+          <div class="saved-list" id="saved-annotations-list" style="margin-top:14px;"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<div class="profile-modal-overlay" id="profile-modal">
+  <div class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+    <div class="profile-modal-header">
+      <div>
+        <div class="profile-modal-title" id="profile-modal-title">Profile</div>
+        <div class="profile-modal-sub">Your account summary and basic preferences.</div>
+      </div>
+      <button class="profile-close" id="btn-profile-close" type="button" aria-label="Close profile">×</button>
+    </div>
+    <div class="profile-grid">
+      <div class="profile-field">
+        <label>Name</label>
+        <div class="profile-readonly" id="profile-name">—</div>
+      </div>
+      <div class="profile-field">
+        <label>Email</label>
+        <div class="profile-readonly" id="profile-email">—</div>
+      </div>
+      <div class="profile-field">
+        <label>Phone</label>
+        <input class="profile-input" id="profile-phone" type="tel" placeholder="Add phone number" />
+      </div>
+      <div class="profile-field">
+        <label>New password</label>
+        <input class="profile-input" id="profile-password" type="password" placeholder="Change password" />
+      </div>
+    </div>
+    <div class="profile-msg" id="profile-msg"></div>
+    <div class="profile-actions">
+      <button class="btn-primary" id="btn-save-profile" type="button" style="justify-content:center;">Save profile</button>
+    </div>
+  </div>
+</div>
+
+<div class="floating-tooltip" id="floating-tooltip" aria-hidden="true"></div>
+
+<script>
+if (window.location.protocol === 'file:') {
+  window.location.replace('http://127.0.0.1:8123');
+}
+
+// ── Design tokens (mirrored from CSS for canvas use) ───────────────
+const LABEL_COLORS = {
+  seizure: '#E85B4A', gpd: '#2196F3', lpd: '#9C27B0',
+  lrda: '#FF9800', grda: '#FF5722', normal: '#4CAF50', other: '#9E9E9E',
+};
+const LABEL_BG = {
+  seizure:'#FEECEB', gpd:'#EBF4FD', lpd:'#F3EBFD',
+  lrda:'#FEF6E8', grda:'#FEEDE8', normal:'#EDFAEE', other:'#F0F0ED',
+};
+const SUPABASE_URL = 'https://wgblfphrlwtbssdbqife.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3SoG1zJ5YjSwWXKNfVix2w_QYMYIvPh';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// ── State ──────────────────────────────────────────────────────────
+let currentFile = null;
+let currentSession = null;
+let currentProfile = null;
+let selectedExamId = '';
+let selectedExamMeta = null;
+let edfData = null;       // {channels, sfreq, duration, raw}
+let predictions = [];     // [{window, t0, t1, label}]
+let windowSize = 20;
+let startTime = 0;
+let scale = 200;
+let lowCutHz = 0;
+let highCutHz = 100;
+let montageMode = 'referential';
+let visualGain = 1.35;
+let cmpVisible = false;
+let loadedFromApi = false;
+let examManifest = [];
+let legacyExamReviewSummary = {};
+let supabaseExamRows = [];
+let examsPanelMode = 'list';
+let examListSort = { key: 'exam_code', direction: 'asc' };
+let examColumnWidths = {
+  exam_code: 220,
+  patient_code: 205,
+  duration_seconds: 120,
+  reviewed_by: 260,
+  my_review: 130,
+  ai_review: 130,
+  consensus_review: 150,
+  agreement_per_exam: 150,
+  window_agreement: 140,
+};
+let baseTracks = {};
+let manualAnnotations = [];
+let interactionMode = 'pan';
+let annotationType = 'seizure';
+let selectedAnnotationId = null;
+let dragAnnotation = null;
+const ANNOTATION_TAG_OPTIONS = ['lpd','gpd','lrda','grda','seizure','ied','suppression','spike','sharp','rda','burst','emg','artifact','cardiac art','elec pop','elec problem','eye blink'];
+const LATERALIZED_OPTIONS = ['Looks lateralized','Looks generalized','Bilateral','Not sure'];
+let examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
+let currentWindowReview = null;
+const floatingTooltip = document.getElementById('floating-tooltip');
+let currentAppState = 'auth';
+let pendingUiRestoreState = null;
+const UI_STATE_STORAGE_KEY = 'ngram_ai_training_ui_state_v1';
+
+function applyDefaultViewerPreset() {
+  scale = 200;
+  lowCutHz = 0;
+  highCutHz = 100;
+  montageMode = 'referential';
+  windowSize = 10;
+
+  document.getElementById('sel-scale').value = '200';
+  document.getElementById('sel-low').value = '0';
+  document.getElementById('sel-high').value = '100';
+  document.getElementById('sel-montage').value = 'referential';
+  document.getElementById('sel-window').value = '10';
+  setInteractionMode('pan');
+  annotationType = 'seizure';
+  document.getElementById('sel-annotation-type').value = 'seizure';
+  selectedAnnotationId = null;
+  updateAnnotationControls();
+}
+
+// Simulated track data (populated after analysis)
+let tracks = {};
+
+// ── File input / drag & drop ───────────────────────────────────────
+const dropZone  = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const filePill  = document.getElementById('file-pill');
+const pillName  = document.getElementById('file-pill-name');
+const btnAnalyze = document.getElementById('btn-analyze');
+const selExamToolbar = document.getElementById('sel-exam');
+const selExamUpload = document.getElementById('upload-exam-select');
+const authEmailInput = document.getElementById('auth-email');
+const authPasswordInput = document.getElementById('auth-password');
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) setFile(e.target.files[0]);
+});
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.toLowerCase().endsWith('.edf')) setFile(f);
+});
+dropZone.addEventListener('click', e => {
+  if (e.target.closest('button, select, option, input, .tb-select, .btn-primary, .file-pill')) return;
+  if (e.target.closest('.file-pill-clear')) return;
+  fileInput.click();
+});
+
+document.getElementById('btn-analyze').addEventListener('click', e => e.stopPropagation());
+document.getElementById('btn-choose').addEventListener('click', e => e.stopPropagation());
+document.getElementById('sel-exam').addEventListener('click', e => e.stopPropagation());
+document.getElementById('upload-exam-select').addEventListener('click', e => e.stopPropagation());
+document.getElementById('sel-scale').addEventListener('click', e => e.stopPropagation());
+document.getElementById('sel-low').addEventListener('click', e => e.stopPropagation());
+document.getElementById('sel-high').addEventListener('click', e => e.stopPropagation());
+document.getElementById('sel-montage').addEventListener('click', e => e.stopPropagation());
+
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value;
+  document.getElementById('auth-error').textContent = '';
+  if (!email || !password) {
+    document.getElementById('auth-error').textContent = 'Enter both email and password.';
+    return;
+  }
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    document.getElementById('auth-error').textContent = 'Login inválido ou usuário sem acesso.';
+  }
+});
+
+authPasswordInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+document.getElementById('btn-logout')?.addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+});
+document.getElementById('btn-profile')?.addEventListener('click', () => {
+  openProfileModal();
+});
+document.getElementById('btn-profile-close')?.addEventListener('click', () => {
+  closeProfileModal();
+});
+document.getElementById('profile-modal')?.addEventListener('click', (event) => {
+  if (event.target.id === 'profile-modal') closeProfileModal();
+});
+document.getElementById('btn-save-profile')?.addEventListener('click', async () => {
+  const msg = document.getElementById('profile-msg');
+  msg.textContent = '';
+  msg.className = 'profile-msg';
+  try {
+    const phone = document.getElementById('profile-phone').value.trim();
+    const password = document.getElementById('profile-password').value;
+    const { error } = await supabaseClient.from('profiles').update({ phone }).eq('id', currentProfile.id);
+    if (error) throw error;
+    if (password) {
+      if (password.length < 6) throw new Error('Use a password with at least 6 characters.');
+      const { error: passwordError } = await supabaseClient.auth.updateUser({ password });
+      if (passwordError) throw passwordError;
+      document.getElementById('profile-password').value = '';
+    }
+    currentProfile.phone = phone;
+    msg.textContent = 'Profile saved successfully.';
+    msg.classList.add('success');
+  } catch (error) {
+    msg.textContent = error.message || 'Could not save the profile.';
+    msg.classList.add('error');
+  }
+});
+document.getElementById('btn-refresh-exams')?.addEventListener('click', async () => {
+  try {
+    await loadSupabaseExams();
+  } catch (error) {
+    console.error(error);
+  }
+});
+document.getElementById('btn-ai-view')?.addEventListener('click', () => {
+  if (!canAccessAiPanel()) return;
+  examsPanelMode = examsPanelMode === 'list' ? 'ai' : 'list';
+  updateExamsPanelMode();
+});
+document.getElementById('btn-ai-download-json')?.addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({
+    generated_at: new Date().toISOString(),
+    model: 'LightGBM v1',
+    exams_count: supabaseExamRows.length,
+    rows: supabaseExamRows.map(row => buildExamListRowModel(row)).map(item => ({
+      exam_code: item.examCode,
+      patient_code: item.patientCode,
+      ai_review: item.aiReviewLabel,
+      consensus_review: item.consensusResult.hasConsensus ? item.consensusResult.label : null,
+      agreement_per_exam: item.examAgreement,
+      window_agreement: item.accuracyValue,
+      reviewed_by: item.reviewedBy,
+    })),
+  }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ngram-ai-summary.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+document.getElementById('btn-ai-download-legacy')?.addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(legacyExamReviewSummary, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'legacy-final-reviews.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+function setFile(f) {
+  currentFile = f;
+  selectedExamId = '';
+  selectedExamMeta = null;
+  selExamToolbar.value = '';
+  selExamUpload.value = '';
+  pillName.textContent = f.name;
+  filePill.classList.add('visible');
+  btnAnalyze.disabled = false;
+}
+
+function clearFile(e) {
+  e.stopPropagation();
+  currentFile = null;
+  fileInput.value = '';
+  filePill.classList.remove('visible');
+  btnAnalyze.disabled = !selectedExamId;
+}
+
+function setSelectedExam(examId) {
+  selectedExamId = examId || '';
+  selectedExamMeta = examManifest.find(x => x.exam_id === selectedExamId) || null;
+  if (selExamToolbar.value !== selectedExamId) selExamToolbar.value = selectedExamId;
+  if (selExamUpload.value !== selectedExamId) selExamUpload.value = selectedExamId;
+  if (selectedExamId) {
+    currentFile = null;
+    fileInput.value = '';
+    filePill.classList.remove('visible');
+  }
+  btnAnalyze.disabled = !(currentFile || selectedExamId);
+  persistUiState();
+}
+
+function setInteractionMode(mode) {
+  interactionMode = mode;
+  if (mode !== 'select' && selectedAnnotationId) {
+    selectedAnnotationId = null;
+    currentWindowReview = makeWindowReview();
+  }
+  document.getElementById('btn-pan').classList.toggle('active', mode === 'pan');
+  document.getElementById('btn-annotate').classList.toggle('active', mode === 'annotate');
+  document.getElementById('btn-select').classList.toggle('active', mode === 'select');
+  const canvasWrap = document.getElementById('canvas-wrap');
+  if (canvasWrap) {
+    canvasWrap.style.cursor =
+      mode === 'annotate' ? 'crosshair' :
+      mode === 'select' ? 'pointer' : 'default';
+  }
+  updateAnnotationControls();
+  refreshAnalysisPanel();
+  refreshSavedAnnotationsList();
+}
+
+function updateAnnotationControls() {
+  const hasSelection = !!manualAnnotations.find(x => x.id === selectedAnnotationId);
+  document.getElementById('btn-delete-annotation').disabled = !hasSelection;
+  const typeSelect = document.getElementById('sel-annotation-type');
+  if (hasSelection) {
+    const ann = manualAnnotations.find(x => x.id === selectedAnnotationId);
+    if (ann) typeSelect.value = ann.label;
+  } else {
+    typeSelect.value = currentWindowReview?.label || annotationType;
+  }
+}
+
+function selectedAnnotation() {
+  return manualAnnotations.find(x => x.id === selectedAnnotationId) || null;
+}
+
+function getCurrentWindowModelMarked() {
+  return predictions
+    .filter(p => p.t1 > startTime && p.t0 < startTime + windowSize)
+    .map(p => p.label)
+    .filter((value, index, array) => array.indexOf(value) === index);
+}
+
+function makeWindowReview() {
+  return {
+    t0: startTime,
+    t1: Math.min(DURATION || 0, startTime + windowSize),
+    label: annotationType,
+    occurrenceType: '—',
+    modelMarked: getCurrentWindowModelMarked(),
+    youThink: [],
+    lateralized: '',
+    modelGrade: '-',
+    comment: '',
+  };
+}
+
+function activeReviewTarget() {
+  return selectedAnnotation() || currentWindowReview;
+}
+
+function toggleChipValue(list, value) {
+  const idx = list.indexOf(value);
+  if (idx >= 0) list.splice(idx, 1);
+  else list.push(value);
+}
+
+function renderChipGroup(containerId, options, selectedValues, onToggle) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  options.forEach(option => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip-btn' + (selectedValues.includes(option) ? ' active' : '');
+    btn.textContent = option;
+    btn.addEventListener('click', () => onToggle(option));
+    container.appendChild(btn);
+  });
+}
+
+function renderStaticChipGroup(containerId, selectedValues) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  selectedValues.forEach(option => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip-btn active';
+    btn.textContent = option;
+    btn.disabled = true;
+    btn.style.cursor = 'default';
+    container.appendChild(btn);
+  });
+}
+
+function renderGradeButtons(containerId, selectedValue, onSelect) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  ['-','1','2','3','4','5','6','7','8','9','10'].forEach(value => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'grade-btn' + (String(selectedValue) === value ? ' active' : '');
+    btn.textContent = value;
+    btn.addEventListener('click', () => onSelect(value));
+    container.appendChild(btn);
+  });
+}
+
+function refreshAnalysisPanel() {
+  const target = activeReviewTarget();
+  const winLabel = target
+    ? `${fmtTime(target.t0)} – ${fmtTime(target.t1)}`
+    : `${fmtTime(startTime)} – ${fmtTime(Math.min(DURATION || 0, startTime + windowSize))}`;
+  document.getElementById('annotation-window-pill').textContent = winLabel;
+
+  if (target) {
+    document.getElementById('annotation-occurrence-type').value = target.occurrenceType || '—';
+    document.getElementById('annotation-comment').value = target.comment || '';
+  } else {
+    document.getElementById('annotation-occurrence-type').value = '—';
+    document.getElementById('annotation-comment').value = '';
+  }
+
+  const modelMarkedValues = target?.modelMarked?.length ? target.modelMarked : getCurrentWindowModelMarked();
+  renderStaticChipGroup('model-marked-grid', modelMarkedValues);
+
+  renderChipGroup('you-think-grid', ANNOTATION_TAG_OPTIONS, target?.youThink || [], (option) => {
+    const current = activeReviewTarget();
+    if (!current) return;
+    current.youThink = current.youThink || [];
+    toggleChipValue(current.youThink, option);
+    refreshAnalysisPanel();
+  });
+
+  renderChipGroup('lateralized-grid', LATERALIZED_OPTIONS, target?.lateralized ? [target.lateralized] : [], (option) => {
+    const current = activeReviewTarget();
+    if (!current) return;
+    current.lateralized = option;
+    refreshAnalysisPanel();
+  });
+
+  renderGradeButtons('model-grade-grid', target?.modelGrade || '-', (value) => {
+    const current = activeReviewTarget();
+    if (!current) return;
+    current.modelGrade = value;
+    refreshAnalysisPanel();
+  });
+
+  renderGradeButtons('overall-grade-grid', examReview.overallGrade || '-', (value) => {
+    examReview.overallGrade = value;
+    refreshAnalysisPanel();
+  });
+
+  document.getElementById('observer-agreement-level').value = examReview.observerAgreementLevel || '—';
+  document.getElementById('observer-comment').value = examReview.observerComment || '';
+  document.getElementById('overall-comment').value = examReview.overallComment || '';
+}
+
+function refreshSavedAnnotationsList() {
+  const list = document.getElementById('saved-annotations-list');
+  const title = document.getElementById('saved-annotations-title');
+  if (!list || !title) return;
+  title.textContent = `Saved annotations (${manualAnnotations.length})`;
+  list.innerHTML = '';
+  manualAnnotations
+    .slice()
+    .sort((a, b) => a.t0 - b.t0)
+    .forEach(ann => {
+      const item = document.createElement('div');
+      item.className = 'saved-item' + (ann.id === selectedAnnotationId ? ' active' : '');
+      item.innerHTML = `<div class="saved-time">${fmtTime(ann.t0)} – ${fmtTime(ann.t1)}</div><div class="saved-label">${ann.label}</div>`;
+      item.addEventListener('click', () => {
+        selectedAnnotationId = ann.id;
+        annotationType = ann.label;
+        document.getElementById('sel-annotation-type').value = ann.label;
+        updateAnnotationControls();
+        refreshAnalysisPanel();
+        buildViewer();
+        draw();
+      });
+      list.appendChild(item);
+    });
+}
+
+function formatDurationSeconds(totalSeconds) {
+  if (!totalSeconds && totalSeconds !== 0) return '—';
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
+function getManifestExam(examCode) {
+  return examManifest.find(exam => exam.exam_id === examCode) || null;
+}
+
+function getLegacyExamSummary(examCode) {
+  return legacyExamReviewSummary[examCode] || null;
+}
+
+function getLegacyReviewerKeyForEmail(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (normalized === 'elaine@neurogram.com') return 'elaine';
+  if (normalized === 'amandamichelucci@hotmail.com') return 'amanda';
+  if (normalized === 'marinadalio@gmail.com') return 'marina';
+  return null;
+}
+
+function getHumanReviewFinalLabel(review) {
+  if (!review) return null;
+  const payload = review.exported_payload || {};
+  return payload.final_label || payload.dominant_label || payload.label || null;
+}
+
+function getReviewerIdentityKey(review) {
+  const normalized = String(review?.profiles?.email || '').trim().toLowerCase();
+  if (normalized === 'elaine@neurogram.com') return 'elaine';
+  if (normalized === 'amandamichelucci@hotmail.com') return 'amanda';
+  if (normalized === 'marinadalio@gmail.com') return 'marina';
+  return review?.reviewer_id || null;
+}
+
+function collectReviewerFinalLabels(row, manifestExam) {
+  const reviewerLabels = new Map();
+  const legacy = manifestExam?.legacy_final_by_rater || getLegacyExamSummary(row.exam_code || row.source_file_name || '')?.legacy_final_by_rater || {};
+  Object.entries(legacy).forEach(([key, value]) => {
+    if (value) reviewerLabels.set(key, value);
+  });
+  (row.exam_human_reviews || [])
+    .filter(review => review.review_status === 'completed')
+    .forEach(review => {
+      const key = getReviewerIdentityKey(review);
+      const value = getHumanReviewFinalLabel(review);
+      if (key && value) reviewerLabels.set(key, value);
+    });
+  return reviewerLabels;
+}
+
+function getConsensusResult(row, manifestExam) {
+  const reviewerMap = collectReviewerFinalLabels(row, manifestExam);
+  const hasPlatformHumanReviews = (row.exam_human_reviews || []).some(review => review.review_status === 'completed');
+  const summarySource = manifestExam || getLegacyExamSummary(row.exam_code || row.source_file_name || '');
+  const manifestHasConsensusFields = summarySource && Object.prototype.hasOwnProperty.call(summarySource, 'consensus_available');
+  if (!hasPlatformHumanReviews && manifestHasConsensusFields) {
+    return {
+      label: summarySource.consensus_dominant_label_final || null,
+      hasConsensus: Boolean(summarySource.consensus_available),
+    };
+  }
+  const reviewerLabels = [...reviewerMap.values()];
+  const counts = reviewerLabels.reduce((acc, label) => {
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+  const [label, count] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
+  if (!label || count < 2) return { label: null, hasConsensus: false };
+  return { label, hasConsensus: true };
+}
+
+function renderReviewBadge(value, pendingText = 'pending') {
+  if (!value) return `<span class="exam-status ${statusClass('pending')}">${pendingText}</span>`;
+  const bg = LABEL_BG[value] || '#F0F0ED';
+  const color = LABEL_COLORS[value] || '#6B6B6B';
+  return `<span class="exam-status" style="background:${bg};color:${color};text-transform:none;">${value}</span>`;
+}
+
+function formatAccuracyValue(value) {
+  if (value === null || value === undefined || value === '') return 'pending';
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 'pending';
+  return num.toFixed(3);
+}
+
+function hideFloatingTooltip() {
+  if (!floatingTooltip) return;
+  floatingTooltip.classList.remove('visible');
+  floatingTooltip.setAttribute('aria-hidden', 'true');
+}
+
+function showFloatingTooltip(target) {
+  if (!floatingTooltip || !target) return;
+  const tip = target.getAttribute('data-tip');
+  if (!tip) return;
+  floatingTooltip.textContent = tip;
+  floatingTooltip.classList.add('visible');
+  floatingTooltip.setAttribute('aria-hidden', 'false');
+
+  const rect = target.getBoundingClientRect();
+  const tooltipRect = floatingTooltip.getBoundingClientRect();
+  const margin = 12;
+  let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+  left = Math.max(margin, Math.min(left, window.innerWidth - tooltipRect.width - margin));
+
+  let top = rect.bottom + 10;
+  if (top + tooltipRect.height > window.innerHeight - margin) {
+    top = rect.top - tooltipRect.height - 10;
+  }
+  top = Math.max(margin, top);
+
+  floatingTooltip.style.left = `${left}px`;
+  floatingTooltip.style.top = `${top}px`;
+}
+
+function statusClass(status) {
+  return `status-${String(status || '').replace(/\s+/g, '_')}`;
+}
+
+function formatReviewerList(assignments = [], legacyReviewedBy = []) {
+  const firstName = name => String(name || '').trim().split(/\s+/)[0] || 'Reviewer';
+  const active = assignments.filter(item => item.assignment_status && item.assignment_status !== 'not_started');
+  const activeNames = active.map(item => {
+    const name = item.profiles?.full_name || item.profiles?.email || 'Reviewer';
+    return firstName(name);
+  });
+  const legacyNames = (legacyReviewedBy || []).filter(Boolean).map(firstName);
+  const combined = [...activeNames, ...legacyNames]
+    .filter(Boolean)
+    .filter((name, index, arr) => arr.indexOf(name) === index);
+  if (!combined.length) return '—';
+  return combined.join(', ');
+}
+
+function getExamAgreementValue(aiReviewLabel, consensusResult) {
+  if (!consensusResult.hasConsensus) return 'No consensus';
+  if (!aiReviewLabel) return 'pending';
+  return aiReviewLabel === consensusResult.label ? 'Match' : 'Mismatch';
+}
+
+function buildExamListRowModel(row) {
+  const examCode = row.exam_code || row.source_file_name || '—';
+  const manifestExam = getManifestExam(examCode);
+  const legacySummary = getLegacyExamSummary(examCode);
+  const myHumanReview = (row.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile?.id);
+  const legacyReviewerKey = getLegacyReviewerKeyForEmail(currentProfile?.email || currentSession?.user?.email);
+  const myReviewLabel = getHumanReviewFinalLabel(myHumanReview) || (legacyReviewerKey ? (manifestExam?.legacy_final_by_rater?.[legacyReviewerKey] || legacySummary?.legacy_final_by_rater?.[legacyReviewerKey]) : null);
+  const aiReview = row.exam_ai_reviews?.[0];
+  const aiReviewLabel = manifestExam?.ai_dominant_label || legacySummary?.ai_dominant_label || (aiReview?.review_status === 'completed' ? (aiReview?.summary?.dominant_label || null) : null);
+  const consensusResult = getConsensusResult(row, manifestExam);
+  const reviewedBy = formatReviewerList(row.exam_assignments || [], row.metadata?.reviewed_by || []);
+  const examAgreement = getExamAgreementValue(aiReviewLabel, consensusResult);
+  const accuracyRaw = manifestExam?.accuracy_vs_consensus ?? legacySummary?.accuracy_vs_consensus ?? aiReview?.summary?.accuracy_vs_consensus;
+  const accuracyValue = !consensusResult.hasConsensus
+    ? 'No consensus'
+    : formatAccuracyValue(accuracyRaw);
+
+  return {
+    row,
+    examCode,
+    patientCode: row.patient_code || '—',
+    durationSeconds: Number(row.duration_seconds || manifestExam?.duration_s || 0),
+    reviewedBy,
+    myReviewLabel,
+    aiReviewLabel,
+    consensusResult,
+    examAgreement,
+    accuracyValue,
+  };
+}
+
+function getSortableStatusRank(value, map) {
+  const normalized = String(value || '').toLowerCase();
+  return Object.prototype.hasOwnProperty.call(map, normalized) ? map[normalized] : 999;
+}
+
+function getExamSortValue(item, key) {
+  switch (key) {
+    case 'exam_code':
+      return item.examCode || '';
+    case 'patient_code':
+      return item.patientCode || '';
+    case 'duration_seconds':
+      return item.durationSeconds || 0;
+    case 'reviewed_by':
+      return item.reviewedBy === '—' ? '' : item.reviewedBy;
+    case 'my_review':
+      return {
+        rank: getSortableStatusRank(item.myReviewLabel || 'pending', {
+          pending: 5,
+          normal: 10,
+          gpd: 20,
+          lpd: 30,
+          lrda: 40,
+          grda: 50,
+          seizure: 60,
+          other: 70,
+        }),
+        label: item.myReviewLabel || 'pending',
+      };
+    case 'ai_review':
+      return {
+        rank: getSortableStatusRank(item.aiReviewLabel || 'pending', {
+          pending: 5,
+          normal: 10,
+          gpd: 20,
+          lpd: 30,
+          lrda: 40,
+          grda: 50,
+          seizure: 60,
+          other: 70,
+        }),
+        label: item.aiReviewLabel || 'pending',
+      };
+    case 'consensus_review':
+      return {
+        rank: getSortableStatusRank(item.consensusResult.hasConsensus ? item.consensusResult.label : 'no consensus', {
+          'no consensus': 5,
+          normal: 10,
+          gpd: 20,
+          lpd: 30,
+          lrda: 40,
+          grda: 50,
+          seizure: 60,
+          other: 70,
+        }),
+        label: item.consensusResult.hasConsensus ? item.consensusResult.label : 'No consensus',
+      };
+    case 'agreement_per_exam':
+      return {
+        rank: getSortableStatusRank(item.examAgreement, {
+          match: 30,
+          mismatch: 20,
+          pending: 10,
+          'no consensus': 0,
+        }),
+        label: item.examAgreement,
+      };
+    case 'window_agreement':
+      if (item.accuracyValue === 'No consensus') return { rank: -2, value: -1, label: 'No consensus' };
+      if (item.accuracyValue === 'pending') return { rank: -1, value: -1, label: 'pending' };
+      return { rank: 10, value: Number(item.accuracyValue), label: item.accuracyValue };
+    default:
+      return '';
+  }
+}
+
+function compareExamSortValues(aValue, bValue) {
+  if (aValue && typeof aValue === 'object' && bValue && typeof bValue === 'object') {
+    if (aValue.rank !== undefined || bValue.rank !== undefined) {
+      const rankDiff = Number(aValue.rank || 0) - Number(bValue.rank || 0);
+      if (rankDiff !== 0) return rankDiff;
+    }
+    if (aValue.value !== undefined || bValue.value !== undefined) {
+      const valueDiff = Number(aValue.value || 0) - Number(bValue.value || 0);
+      if (valueDiff !== 0) return valueDiff;
+    }
+    return String(aValue.label || '').localeCompare(String(bValue.label || ''), undefined, { sensitivity: 'base' });
+  }
+  if (typeof aValue === 'number' || typeof bValue === 'number') {
+    return Number(aValue || 0) - Number(bValue || 0);
+  }
+  return String(aValue || '').localeCompare(String(bValue || ''), undefined, { sensitivity: 'base', numeric: true });
+}
+
+function sortExamListRows(items) {
+  const { key, direction } = examListSort;
+  const multiplier = direction === 'desc' ? -1 : 1;
+  return [...items].sort((a, b) => {
+    const primary = compareExamSortValues(getExamSortValue(a, key), getExamSortValue(b, key));
+    if (primary !== 0) return primary * multiplier;
+    return String(a.examCode || '').localeCompare(String(b.examCode || ''), undefined, { sensitivity: 'base', numeric: true });
+  });
+}
+
+function updateExamHeaderSortIndicators() {
+  document.querySelectorAll('.exam-table th.sortable').forEach(th => {
+    const key = th.dataset.sortKey;
+    const indicator = th.querySelector('.exam-sort-indicator');
+    if (!indicator) return;
+    if (key === examListSort.key) {
+      indicator.textContent = examListSort.direction === 'asc' ? '↑' : '↓';
+      indicator.classList.add('active');
+    } else {
+      indicator.textContent = '↕';
+      indicator.classList.remove('active');
+    }
+  });
+}
+
+function applyExamColumnWidths() {
+  let totalWidth = 0;
+  Object.entries(examColumnWidths).forEach(([key, width]) => {
+    const col = document.getElementById(`col-${key}`);
+    if (col && Number.isFinite(width)) {
+      col.style.width = `${width}px`;
+      col.style.minWidth = `${width}px`;
+      totalWidth += width;
+    }
+  });
+  const table = document.querySelector('.exam-table');
+  const wrap = document.querySelector('.exam-table-wrap');
+  if (table && totalWidth > 0) {
+    const wrapWidth = wrap?.clientWidth || 0;
+    const finalWidth = Math.max(totalWidth, wrapWidth);
+    table.style.width = `${finalWidth}px`;
+    table.style.minWidth = `${finalWidth}px`;
+  }
+}
+
+function bindExamTableHeaderInteractions() {
+  document.querySelectorAll('.exam-table th.sortable').forEach(th => {
+    if (th.dataset.sortBound !== '1') {
+      th.dataset.sortBound = '1';
+      th.addEventListener('click', event => {
+        if (event.target.closest('.exam-col-resize') || event.target.closest('.th-help')) return;
+        const key = th.dataset.sortKey;
+        if (!key) return;
+        if (examListSort.key === key) {
+          examListSort.direction = examListSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          examListSort = { key, direction: 'asc' };
+        }
+        renderExamList();
+      });
+    }
+  });
+
+  document.querySelectorAll('.exam-col-resize').forEach(handle => {
+    if (handle.dataset.resizeBound === '1') return;
+    handle.dataset.resizeBound = '1';
+    handle.addEventListener('mousedown', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const key = handle.dataset.resizeKey;
+      if (!key) return;
+      const startX = event.clientX;
+      const startWidth = examColumnWidths[key] || handle.closest('th')?.offsetWidth || 120;
+      handle.classList.add('is-active');
+
+      const onMouseMove = moveEvent => {
+        const nextWidth = Math.max(96, startWidth + (moveEvent.clientX - startX));
+        examColumnWidths[key] = nextWidth;
+        applyExamColumnWidths();
+      };
+
+      const onMouseUp = () => {
+        handle.classList.remove('is-active');
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    });
+  });
+}
+
+function updateExamsPanelMode() {
+  if (examsPanelMode === 'ai' && !canAccessAiPanel()) {
+    examsPanelMode = 'list';
+  }
+  const listView = document.getElementById('exam-list-view');
+  const aiView = document.getElementById('ai-control-view');
+  const aiBtn = document.getElementById('btn-ai-view');
+  const refreshBtn = document.getElementById('btn-refresh-exams');
+  if (listView) listView.hidden = examsPanelMode !== 'list';
+  if (aiView) aiView.hidden = examsPanelMode !== 'ai';
+  if (aiBtn) aiBtn.textContent = examsPanelMode === 'ai' ? 'Back to exams' : 'AI';
+  if (refreshBtn) refreshBtn.style.display = examsPanelMode === 'list' ? 'inline-flex' : 'none';
+  if (examsPanelMode === 'ai') {
+    renderAiPanel();
+  } else {
+    requestAnimationFrame(() => {
+      renderExamList();
+      const wrap = document.querySelector('.exam-table-wrap');
+      if (wrap) wrap.scrollLeft = 0;
+    });
+  }
+  persistUiState();
+}
+
+function renderAiPanel() {
+  const grid = document.getElementById('ai-grid');
+  const featureList = document.getElementById('ai-feature-list');
+  const typeAgreementList = document.getElementById('ai-type-agreement-list');
+  const typeCoverageList = document.getElementById('ai-type-coverage-list');
+  const insightGrid = document.getElementById('ai-insight-grid');
+  if (!grid || !featureList || !typeAgreementList || !typeCoverageList || !insightGrid) return;
+  const items = supabaseExamRows.map(buildExamListRowModel);
+  const consensusCount = items.filter(item => item.consensusResult.hasConsensus).length;
+  const matchCount = items.filter(item => item.examAgreement === 'Match').length;
+  const numericAccuracies = items
+    .map(item => Number(item.accuracyValue))
+    .filter(value => Number.isFinite(value));
+  const avgAgreement = numericAccuracies.length
+    ? (numericAccuracies.reduce((sum, value) => sum + value, 0) / numericAccuracies.length).toFixed(3)
+    : '—';
+  const aiLabels = items.reduce((acc, item) => {
+    const key = item.aiReviewLabel || 'pending';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const dominantAiLabel = Object.entries(aiLabels).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+  const itemsWithConsensus = items.filter(item => item.consensusResult.hasConsensus);
+  const typeStats = itemsWithConsensus.reduce((acc, item) => {
+    const label = item.consensusResult.label;
+    if (!acc[label]) acc[label] = { count: 0, agreementSum: 0, agreementCount: 0, exactMatchCount: 0 };
+    acc[label].count += 1;
+    if (Number.isFinite(Number(item.accuracyValue))) {
+      acc[label].agreementSum += Number(item.accuracyValue);
+      acc[label].agreementCount += 1;
+    }
+    if (item.examAgreement === 'Match') acc[label].exactMatchCount += 1;
+    return acc;
+  }, {});
+  const typeStatsList = Object.entries(typeStats)
+    .map(([label, stats]) => ({
+      label,
+      count: stats.count,
+      avgAgreement: stats.agreementCount ? stats.agreementSum / stats.agreementCount : 0,
+      exactMatchRate: stats.count ? stats.exactMatchCount / stats.count : 0,
+    }))
+    .sort((a, b) => b.avgAgreement - a.avgAgreement);
+  const maxTypeCount = Math.max(...typeStatsList.map(item => item.count), 1);
+  const bestType = typeStatsList[0] || null;
+  const worstType = [...typeStatsList].sort((a, b) => a.avgAgreement - b.avgAgreement)[0] || null;
+  const noConsensusCount = items.filter(item => !item.consensusResult.hasConsensus).length;
+  const mismatchCount = items.filter(item => item.examAgreement === 'Mismatch').length;
+  const exactMatchRate = consensusCount ? (matchCount / consensusCount) : 0;
+
+  grid.innerHTML = [
+    { label: 'Model', value: 'LightGBM v1', sub: 'current local baseline' },
+    { label: 'Exams', value: String(items.length), sub: 'available on the platform' },
+    { label: 'Consensus', value: `${consensusCount}/${items.length}`, sub: 'exams with valid consensus' },
+    { label: 'Average agreement', value: avgAgreement, sub: 'average window agreement' },
+  ].map(card => `
+    <div class="ai-card">
+      <div class="ai-card-label">${card.label}</div>
+      <div class="ai-card-value">${card.value}</div>
+      <div class="ai-card-sub">${card.sub}</div>
+    </div>
+  `).join('');
+
+  typeAgreementList.innerHTML = typeStatsList.length ? typeStatsList.map(item => {
+    const bg = LABEL_BG[item.label] || '#F0F0ED';
+    const color = LABEL_COLORS[item.label] || '#6B6B6B';
+    const barWidth = `${Math.max(4, Math.round(item.avgAgreement * 100))}%`;
+    return `
+      <div class="ai-type-row">
+        <span class="ai-type-label" style="background:${bg};color:${color};">${item.label}</span>
+        <div class="ai-type-bar"><div class="ai-type-bar-fill" style="width:${barWidth};background:${color};"></div></div>
+        <span class="ai-type-value">${item.avgAgreement.toFixed(3)}</span>
+        <span class="ai-type-count">${item.count} exam(s)</span>
+      </div>
+    `;
+  }).join('') : `<div class="ai-metric-sub">There is not enough consensus yet to calculate this by type.</div>`;
+
+  typeCoverageList.innerHTML = typeStatsList.length ? [...typeStatsList]
+    .sort((a, b) => b.count - a.count)
+    .map(item => {
+      const bg = LABEL_BG[item.label] || '#F0F0ED';
+      const color = LABEL_COLORS[item.label] || '#6B6B6B';
+      const barWidth = `${Math.max(4, Math.round((item.count / maxTypeCount) * 100))}%`;
+      return `
+        <div class="ai-type-row">
+          <span class="ai-type-label" style="background:${bg};color:${color};">${item.label}</span>
+          <div class="ai-type-bar"><div class="ai-type-bar-fill" style="width:${barWidth};background:${color};"></div></div>
+          <span class="ai-type-value">${Math.round(item.exactMatchRate * 100)}%</span>
+          <span class="ai-type-count">${item.count} consensus case(s)</span>
+        </div>
+      `;
+    }).join('') : `<div class="ai-metric-sub">No type coverage is available until valid consensus exists.</div>`;
+
+  insightGrid.innerHTML = [
+    {
+      label: 'Best type',
+      value: bestType ? bestType.label : '—',
+      sub: bestType ? `Average window agreement ${bestType.avgAgreement.toFixed(3)} across ${bestType.count} exam(s).` : 'Not enough data yet.',
+    },
+    {
+      label: 'Most difficult type',
+      value: worstType ? worstType.label : '—',
+      sub: worstType ? `Average window agreement ${worstType.avgAgreement.toFixed(3)} across ${worstType.count} exam(s).` : 'Not enough data yet.',
+    },
+    {
+      label: 'Final match',
+      value: `${Math.round(exactMatchRate * 100)}%`,
+      sub: `${matchCount} of ${consensusCount || 0} exams with valid consensus had a final match.`,
+    },
+    {
+      label: 'No consensus',
+      value: String(noConsensusCount),
+      sub: 'Exams where all reviewers disagreed on the final label.',
+    },
+    {
+      label: 'Final mismatch',
+      value: String(mismatchCount),
+      sub: 'Exams with valid consensus where the AI reached a different final label.',
+    },
+    {
+      label: 'Dominant AI class',
+      value: dominantAiLabel,
+      sub: 'Most frequent final label among the model’s current outputs.',
+    },
+  ].map(card => `
+    <div class="ai-insight-card">
+      <div class="ai-insight-label">${card.label}</div>
+      <div class="ai-insight-value">${card.value}</div>
+      <div class="ai-insight-sub">${card.sub}</div>
+    </div>
+  `).join('');
+
+  featureList.innerHTML = [
+    `The dominant AI class right now is <strong>${dominantAiLabel}</strong>.`,
+    `${matchCount} exam(s) currently have a final match between AI and consensus; ${items.length - matchCount} still show mismatch or no consensus.`,
+    `The type with the best average agreement right now is <strong>${bestType?.label || '—'}</strong>; the most challenging is <strong>${worstType?.label || '—'}</strong>.`,
+    `This area can evolve into the central hub for output downloads, performance audits, and future model upload/switch workflows.`,
+  ].map(text => `<li>${text}</li>`).join('');
+}
+
+function renderExamList() {
+  const body = document.getElementById('exam-table-body');
+  const sub = document.getElementById('exam-list-sub');
+  const wrap = document.querySelector('.exam-table-wrap');
+  if (!body || !sub) return;
+  applyExamColumnWidths();
+  updateExamHeaderSortIndicators();
+  bindExamTableHeaderInteractions();
+  if (!supabaseExamRows.length) {
+    sub.textContent = 'No exams found in Supabase yet.';
+    body.innerHTML = `<tr><td colspan="9"><div class="empty-state">There are no exams in the database yet. You can still use the local viewer while we finish wiring the full ingestion flow.</div></td></tr>`;
+    return;
+  }
+  sub.textContent = `${supabaseExamRows.length} exam(s) available`;
+  body.innerHTML = '';
+  const sortedItems = sortExamListRows(supabaseExamRows.map(buildExamListRowModel));
+  sortedItems.forEach(item => {
+    const { row, examCode, patientCode, durationSeconds, reviewedBy, myReviewLabel, aiReviewLabel, consensusResult, examAgreement, accuracyValue } = item;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><button type="button" class="exam-row-btn" data-exam-code="${examCode}">${examCode}</button></td>
+      <td>${patientCode}</td>
+      <td>${formatDurationSeconds(durationSeconds)}</td>
+      <td>${reviewedBy}</td>
+      <td>${renderReviewBadge(myReviewLabel)}</td>
+      <td>${aiReviewLabel ? renderReviewBadge(aiReviewLabel) : `<span class="exam-status ${statusClass('pending')}">pending</span>`}</td>
+      <td>${consensusResult.hasConsensus ? renderReviewBadge(consensusResult.label) : `<span class="exam-status ${statusClass('pending')}">No consensus</span>`}</td>
+      <td>${
+        examAgreement === 'No consensus'
+          ? `<span class="exam-status ${statusClass('pending')}">No consensus</span>`
+          : examAgreement === 'pending'
+            ? `<span class="exam-status ${statusClass('pending')}">pending</span>`
+            : examAgreement === 'Match'
+              ? `<span class="exam-status status-completed">match</span>`
+              : `<span class="exam-status status-mismatch">mismatch</span>`
+      }</td>
+      <td>${
+        accuracyValue === 'No consensus'
+          ? `<span class="exam-status ${statusClass('pending')}">No consensus</span>`
+          : accuracyValue === 'pending'
+            ? `<span class="exam-status ${statusClass('pending')}">pending</span>`
+            : accuracyValue
+      }</td>
+    `;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('.exam-row-btn').forEach(btn => {
+    btn.addEventListener('click', () => openExamFromList(btn.dataset.examCode));
+  });
+  if (wrap) wrap.scrollLeft = 0;
+  document.querySelectorAll('.th-help').forEach(el => {
+    if (el.dataset.tooltipBound === '1') return;
+    el.dataset.tooltipBound = '1';
+    el.addEventListener('mouseenter', () => showFloatingTooltip(el));
+    el.addEventListener('focus', () => showFloatingTooltip(el));
+    el.addEventListener('mouseleave', hideFloatingTooltip);
+    el.addEventListener('blur', hideFloatingTooltip);
+  });
+}
+
+async function loadSupabaseExams() {
+  if (!currentSession) return;
+  const sub = document.getElementById('exam-list-sub');
+  if (sub) sub.textContent = 'Loading exams from Supabase…';
+
+  const { data: examsRows, error: examsError } = await supabaseClient
+    .from('exams')
+    .select('id, exam_code, source_file_name, patient_code, duration_seconds, status, uploaded_at, metadata')
+    .order('uploaded_at', { ascending: false });
+  if (examsError) throw new Error(`exams: ${examsError.message}`);
+
+  const { data: aiRows, error: aiError } = await supabaseClient
+    .from('exam_ai_reviews')
+    .select('exam_id, review_status, summary');
+  if (aiError) throw new Error(`exam_ai_reviews: ${aiError.message}`);
+
+  const { data: assignmentRows, error: assignmentError } = await supabaseClient
+    .from('exam_assignments')
+    .select('exam_id, reviewer_id, assignment_status');
+  if (assignmentError) throw new Error(`exam_assignments: ${assignmentError.message}`);
+
+  const { data: humanRows, error: humanError } = await supabaseClient
+    .from('exam_human_reviews')
+    .select('exam_id, reviewer_id, review_status, exported_payload');
+  if (humanError) throw new Error(`exam_human_reviews: ${humanError.message}`);
+
+  const { data: profileRows, error: profileError } = await supabaseClient
+    .from('profiles')
+    .select('id, full_name, email');
+  if (profileError) {
+    console.warn('Could not load reviewer profiles for the exam table.', profileError);
+  }
+
+  const profilesById = new Map((profileRows || []).map(row => [row.id, row]));
+  const aiByExam = new Map();
+  (aiRows || []).forEach(row => aiByExam.set(row.exam_id, row));
+  const assignmentsByExam = new Map();
+  (assignmentRows || []).forEach(row => {
+    const list = assignmentsByExam.get(row.exam_id) || [];
+    list.push({
+      ...row,
+      profiles: profilesById.get(row.reviewer_id) || (row.reviewer_id === currentProfile?.id ? currentProfile : null)
+    });
+    assignmentsByExam.set(row.exam_id, list);
+  });
+  const humanByExam = new Map();
+  (humanRows || []).forEach(row => {
+    const list = humanByExam.get(row.exam_id) || [];
+    list.push({
+      ...row,
+      profiles: profilesById.get(row.reviewer_id) || (row.reviewer_id === currentProfile?.id ? currentProfile : null)
+    });
+    humanByExam.set(row.exam_id, list);
+  });
+
+  supabaseExamRows = (examsRows || []).map(row => ({
+    ...row,
+    exam_ai_reviews: aiByExam.get(row.id) ? [aiByExam.get(row.id)] : [],
+    exam_assignments: assignmentsByExam.get(row.id) || [],
+    exam_human_reviews: humanByExam.get(row.id) || []
+  }));
+
+  renderExamList();
+  updateExamsPanelMode();
+}
+
+function showExamList() {
+  document.getElementById('toolbar-upload').style.display = 'none';
+  document.getElementById('toolbar-viewer').style.display = 'none';
+  document.getElementById('time-lbl').style.display = 'none';
+  document.getElementById('toolbar-account')?.classList.add('visible');
+  showState('exams');
+}
+
+async function openExamFromList(examCode) {
+  setSelectedExam(examCode);
+  if (selectedExamId) {
+    await startAnalysis();
+    return;
+  }
+  document.getElementById('auth-error').textContent = `The exam ${examCode} is not yet available in the local viewer.`;
+}
+
+function canExportJson() {
+  return ['admin', 'manager'].includes(currentProfile?.role);
+}
+
+function canAccessAiPanel() {
+  return ['admin', 'manager'].includes(currentProfile?.role);
+}
+
+function formatRoleLabel(role) {
+  if (role === 'admin') return 'Admin';
+  if (role === 'manager') return 'Manager';
+  if (role === 'reviewer') return 'Reviewer';
+  return role || '—';
+}
+
+function setToolbarUser(profile, email) {
+  const toolbarAccount = document.getElementById('toolbar-account');
+  const toolbarAccountName = document.getElementById('toolbar-account-name');
+  if (toolbarAccountName) toolbarAccountName.textContent = profile?.full_name || email || 'User';
+  if (toolbarAccount) toolbarAccount.classList.toggle('visible', Boolean(profile || email));
+  const saveBtn = document.getElementById('btn-save');
+  if (saveBtn) saveBtn.style.display = canExportJson() ? 'flex' : 'none';
+  const aiBtn = document.getElementById('btn-ai-view');
+  if (aiBtn) aiBtn.style.display = canAccessAiPanel() ? 'inline-flex' : 'none';
+}
+
+function fillProfileModal() {
+  document.getElementById('profile-name').textContent = currentProfile?.full_name || '—';
+  document.getElementById('profile-email').textContent = currentProfile?.email || currentSession?.user?.email || '—';
+  document.getElementById('profile-phone').value = currentProfile?.phone || '';
+  document.getElementById('profile-password').value = '';
+  document.getElementById('profile-msg').textContent = '';
+  document.getElementById('profile-msg').className = 'profile-msg';
+}
+
+function openProfileModal() {
+  fillProfileModal();
+  document.getElementById('profile-modal').classList.add('open');
+}
+
+function closeProfileModal() {
+  document.getElementById('profile-modal').classList.remove('open');
+}
+
+async function loadProfile(userId) {
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('id,email,full_name,role,is_active,phone')
+    .eq('id', userId)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function handleAuthenticatedSession(session) {
+  const sameUser = currentSession?.user?.id && currentSession.user.id === session.user.id;
+  const viewerAlreadyReady = currentAppState === 'viewer' && loadedFromApi && edfData && selectedExamId;
+  currentSession = session;
+  if (!sameUser || !currentProfile) {
+    currentProfile = await loadProfile(session.user.id);
+  }
+  setToolbarUser(currentProfile, session.user.email);
+  document.getElementById('auth-error').textContent = '';
+
+  if (sameUser && viewerAlreadyReady) {
+    persistUiState();
+    return;
+  }
+
+  try {
+    await loadExamManifest();
+  } catch (error) {
+    console.warn('Could not load the local exam manifest.', error);
+  }
+
+  try {
+    await loadSupabaseExams();
+  } catch (error) {
+    console.error('Could not load the exam list from Supabase.', error);
+    supabaseExamRows = [];
+    const sub = document.getElementById('exam-list-sub');
+    const body = document.getElementById('exam-table-body');
+    if (sub) sub.textContent = `Could not load exams from Supabase right now: ${error?.message || 'unknown error'}`;
+    if (body) body.innerHTML = `<tr><td colspan="8"><div class="empty-state">Authentication worked, but the exam list failed to load. Try the Refresh button again in a moment.</div></td></tr>`;
+  }
+
+  const savedState = loadPersistedUiState();
+  if (savedState?.appState === 'viewer' && savedState.selectedExamId) {
+    pendingUiRestoreState = savedState;
+    setSelectedExam(savedState.selectedExamId);
+    await startAnalysis();
+    return;
+  }
+  if (savedState?.appState === 'exams' && savedState.examsPanelMode) {
+    examsPanelMode = savedState.examsPanelMode;
+  }
+  showExamList();
+}
+
+function handleSignedOutState() {
+  currentSession = null;
+  currentProfile = null;
+  pendingUiRestoreState = null;
+  document.getElementById('auth-error').textContent = '';
+  closeProfileModal();
+  setToolbarUser(null, null);
+  document.getElementById('toolbar-upload').style.display = 'none';
+  document.getElementById('toolbar-viewer').style.display = 'none';
+  document.getElementById('time-lbl').style.display = 'none';
+  document.getElementById('toolbar-account')?.classList.remove('visible');
+  showState('auth');
+}
+
+async function initAuth() {
+  document.getElementById('toolbar-upload').style.display = 'none';
+  document.getElementById('toolbar-viewer').style.display = 'none';
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    try {
+      await handleAuthenticatedSession(session);
+    } catch (error) {
+      console.error(error);
+      document.getElementById('auth-error').textContent = 'Could not start the platform.';
+      showState('auth');
+    }
+  } else {
+    handleSignedOutState();
+  }
+
+  supabaseClient.auth.onAuthStateChange(async (event, sessionValue) => {
+    if (event === 'TOKEN_REFRESHED' && currentAppState === 'viewer' && loadedFromApi && edfData) {
+      currentSession = sessionValue || currentSession;
+      return;
+    }
+    if (sessionValue) {
+      try {
+        await handleAuthenticatedSession(sessionValue);
+      } catch (error) {
+        console.error(error);
+        document.getElementById('auth-error').textContent = 'Could not start the platform.';
+        showState('auth');
+      }
+    } else {
+      handleSignedOutState();
+    }
+  });
+}
+
+selExamToolbar.addEventListener('change', e => setSelectedExam(e.target.value));
+selExamUpload.addEventListener('change', e => setSelectedExam(e.target.value));
+
+// ── State transitions ──────────────────────────────────────────────
+function persistUiState() {
+  try {
+    const payload = {
+      appState: currentAppState,
+      examsPanelMode,
+      selectedExamId,
+      startTime,
+      windowSize,
+      scale,
+      lowCutHz,
+      highCutHz,
+      montageMode,
+      cmpVisible,
+    };
+    window.localStorage.setItem(UI_STATE_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn('Could not persist UI state.', error);
+  }
+}
+
+function loadPersistedUiState() {
+  try {
+    const raw = window.localStorage.getItem(UI_STATE_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.warn('Could not restore UI state.', error);
+    return null;
+  }
+}
+
+function applyRestoredViewerState(saved) {
+  if (!saved || !edfData) return;
+  scale = Number(saved.scale) || 200;
+  lowCutHz = Number(saved.lowCutHz ?? 0);
+  highCutHz = Number(saved.highCutHz ?? 100);
+  montageMode = saved.montageMode || 'referential';
+  windowSize = Number(saved.windowSize) || 10;
+  cmpVisible = Boolean(saved.cmpVisible);
+
+  document.getElementById('sel-scale').value = String(scale);
+  document.getElementById('sel-low').value = String(lowCutHz);
+  document.getElementById('sel-high').value = String(highCutHz);
+  document.getElementById('sel-montage').value = montageMode;
+  document.getElementById('sel-window').value = String(windowSize);
+
+  if (!selectedAnnotationId) currentWindowReview = makeWindowReview();
+  buildViewer();
+  const targetTime = Number(saved.startTime || 0);
+  navigate(targetTime);
+  document.getElementById('cmp-strip').classList.toggle('visible', cmpVisible);
+  document.getElementById('btn-cmp').classList.toggle('active', cmpVisible);
+  if (cmpVisible) {
+    setTimeout(() => { resizeCmp(); drawCmp(); }, 30);
+  }
+}
+
+function showState(id) {
+  currentAppState = id;
+  document.body.classList.toggle('viewer-active', id === 'viewer');
+  document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('state-' + id);
+  // force reflow for transition
+  el.getBoundingClientRect();
+  el.classList.add('active');
+  persistUiState();
+}
+
+function resetToUpload() {
+  showState('upload');
+  document.getElementById('toolbar-upload').style.display = 'flex';
+  document.getElementById('toolbar-viewer').style.display = 'none';
+  document.getElementById('time-lbl').style.display = 'none';
+  document.getElementById('toolbar-account')?.classList.add('visible');
+  loadedFromApi = false;
+  examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
+  currentWindowReview = null;
+  applyDefaultViewerPreset();
+}
+
+function returnToExamList() {
+  document.getElementById('toolbar-upload').style.display = 'none';
+  document.getElementById('toolbar-viewer').style.display = 'none';
+  document.getElementById('time-lbl').style.display = 'none';
+  document.getElementById('toolbar-account')?.classList.add('visible');
+  loadedFromApi = false;
+  selectedAnnotationId = null;
+  currentWindowReview = null;
+  applyDefaultViewerPreset();
+  showExamList();
+}
+
+// ── Loading simulation + EDF parse ────────────────────────────────
+function startAnalysis() {
+  if (!currentFile && !selectedExamId) return;
+  manualAnnotations = [];
+  selectedAnnotationId = null;
+  baseTracks = {};
+  showState('loading');
+  document.getElementById('toolbar-upload').style.display = 'none';
+
+  const steps = ['step-read','step-segment','step-feat','step-predict','step-render'];
+  const msgs  = [
+    'Reading EDF header…',
+    'Segmenting signal into 10-second windows…',
+    'Extracting band-power features…',
+    text => text,   // dynamic
+    'Building viewer…',
+  ];
+  let stepIdx = 0;
+  const bar    = document.getElementById('progress-bar');
+  const status = document.getElementById('loading-status');
+
+  function activateStep(i) {
+    steps.forEach((id, j) => {
+      const el = document.getElementById(id);
+      el.classList.remove('active','done');
+      if (j < i)  el.classList.add('done');
+      if (j === i) el.classList.add('active');
+    });
+  }
+
+  if (selectedExamId) {
+    loadExamFromApi();
+    return;
+  }
+
+  // Read the actual EDF file
+  const reader = new FileReader();
+  reader.onload = e => {
+    const buf = e.target.result;
+    activateStep(0);
+    status.textContent = 'Reading EDF header…';
+    bar.style.width = '5%';
+
+    setTimeout(() => {
+      edfData = parseEDF(buf);
+      activateStep(1);
+      bar.style.width = '25%';
+      status.textContent = `Segmenting ${edfData.duration.toFixed(0)}s into 10-second windows…`;
+
+      setTimeout(() => {
+        activateStep(2);
+        bar.style.width = '50%';
+        status.textContent = 'Extraindo features…';
+
+        const windows = segmentAndPredict(edfData);
+        let w = 0;
+        const total = windows.length;
+
+        function predictChunk() {
+          const chunk = 20;
+          const end = Math.min(w + chunk, total);
+          for (; w < end; w++) {
+            windows[w].label = classifyWindow(windows[w].features);
+          }
+          const pct = 50 + (w / total) * 40;
+          bar.style.width = pct + '%';
+          if (w < total) {
+            activateStep(3);
+            status.textContent = `Processing window ${w} of ${total}…`;
+            setTimeout(predictChunk, 0);
+          } else {
+            predictions = windows;
+            activateStep(4);
+            bar.style.width = '95%';
+            status.textContent = 'Rendering…';
+            setTimeout(finishLoading, 400);
+          }
+        }
+        setTimeout(predictChunk, 80);
+      }, 300);
+    }, 200);
+  };
+  reader.readAsArrayBuffer(currentFile);
+}
+
+async function loadExamFromApi() {
+  const bar = document.getElementById('progress-bar');
+  const status = document.getElementById('loading-status');
+  const steps = ['step-read','step-segment','step-feat','step-predict','step-render'];
+  const activateStep = i => {
+    steps.forEach((id, j) => {
+      const el = document.getElementById(id);
+      el.classList.remove('active','done');
+      if (j < i) el.classList.add('done');
+      if (j === i) el.classList.add('active');
+    });
+  };
+
+  try {
+    activateStep(0);
+    status.textContent = `Loading ${selectedExamId}…`;
+    bar.style.width = '10%';
+
+    const res = await fetch(`/api/exam?id=${encodeURIComponent(selectedExamId)}`);
+    const payload = await res.json();
+
+    activateStep(1);
+    bar.style.width = '35%';
+    status.textContent = 'Building windows and tracks…';
+
+    edfData = {
+      channels: payload.channels,
+      duration: payload.duration,
+      rawDs: payload.rawDs.map(ch => Float32Array.from(ch)),
+      dsFreq: payload.dsFreq,
+      sfreq: payload.sfreq,
+    };
+
+    activateStep(2);
+    bar.style.width = '55%';
+    status.textContent = `Running ${payload.model_name} analysis…`;
+
+    predictions = payload.predictions;
+    baseTracks = payload.tracks || {};
+    tracks = {};
+    loadedFromApi = true;
+
+    activateStep(4);
+    bar.style.width = '95%';
+    status.textContent = 'Rendering viewer…';
+    setTimeout(finishLoading, 300);
+  } catch (err) {
+    console.error(err);
+    alert('Failed to load exam analysis.');
+    resetToUpload();
+  }
+}
+
+function finishLoading() {
+  document.getElementById('progress-bar').style.width = '100%';
+  applyDefaultViewerPreset();
+  currentWindowReview = makeWindowReview();
+  buildTracks();
+  buildViewer();
+  updateAnnotationControls();
+
+  setTimeout(() => {
+    showState('viewer');
+    document.getElementById('toolbar-viewer').style.display = 'flex';
+    document.getElementById('toolbar-account')?.classList.remove('visible');
+    if (pendingUiRestoreState) {
+      applyRestoredViewerState(pendingUiRestoreState);
+      pendingUiRestoreState = null;
+    }
+    resize();
+    draw();
+    drawTimeline();
+    updatePanel();
+  }, 350);
+}
+
+// ── EDF Parser (header + signal) ──────────────────────────────────
+function parseEDF(buf) {
+  const txt = s => String.fromCharCode(...new Uint8Array(buf, s[0], s[1])).trim();
+  const nSig = parseInt(txt([236, 4]));
+  const hdrBytes = parseInt(txt([184, 8]));
+  const durationRec = parseFloat(txt([244, 8]));
+  const nRec = parseInt(txt([252, 8]));
+
+  // Per-signal fields (each 16 chars × nSig)
+  const off = n => 256 + n * 16 * nSig;
+  const sigField = (field, i) => {
+    const base = [off(0),off(1),off(2),off(3),off(4),off(5),off(6),off(7),off(8)];
+    const widths = [16,80,8,8,8,8,8,80,32];
+    // field index: 0=label,1=transducer,2=phyDim,3=phyMin,4=phyMax,5=digMin,6=digMax,7=prefilter,8=nSamples
+    let base2 = 256;
+    for (let f = 0; f < field; f++) base2 += widths[f] * nSig;
+    return String.fromCharCode(...new Uint8Array(buf, base2 + widths[field]*i, widths[field])).trim();
+  };
+
+  const channels = [], nSamples = [];
+  for (let i = 0; i < nSig; i++) {
+    channels.push(sigField(0, i));
+    nSamples.push(parseInt(sigField(8, i)));
+  }
+  const sfreq = nSamples[0] / durationRec;
+  const duration = durationRec * nRec;
+
+  // Read signal (float32 per sample via int16 + scaling)
+  const dv = new DataView(buf, hdrBytes);
+  const phyMin = channels.map((_,i) => parseFloat(sigField(3,i)));
+  const phyMax = channels.map((_,i) => parseFloat(sigField(4,i)));
+  const digMin = channels.map((_,i) => parseFloat(sigField(5,i)));
+  const digMax = channels.map((_,i) => parseFloat(sigField(6,i)));
+  const gains  = channels.map((_,i) => (phyMax[i]-phyMin[i])/(digMax[i]-digMin[i]));
+  const offsets= channels.map((_,i) => phyMax[i]/gains[i] - digMax[i]);
+
+  const recSamples = nSamples.reduce((a,b) => a+b, 0);
+  const raw = channels.map(() => []);
+
+  let pos = 0;
+  for (let r = 0; r < nRec; r++) {
+    for (let i = 0; i < nSig; i++) {
+      for (let s = 0; s < nSamples[i]; s++) {
+        const dig = dv.getInt16(pos * 2, true);
+        raw[i].push((dig + offsets[i]) * gains[i]);
+        pos++;
+      }
+    }
+  }
+
+  // Downsample to ~200 Hz via averaging (anti-aliased) for rendering
+  // Target 200 Hz keeps enough resolution for 70 Hz content and avoids aliasing.
+  const TARGET_DS = 200;
+  const ds = Math.max(1, Math.floor(sfreq / TARGET_DS));
+  const rawDs = raw.map(ch => {
+    const out = new Float32Array(Math.floor(ch.length / ds));
+    for (let i = 0; i < out.length; i++) {
+      let sum = 0;
+      const base = i * ds;
+      for (let j = 0; j < ds; j++) sum += ch[base + j] || 0;
+      out[i] = sum / ds;
+    }
+    return out;
+  });
+
+  return { channels, sfreq, duration, raw, rawDs, ds, dsFreq: sfreq / ds, nSamples: nSamples[0], durationRec };
+}
+
+// ── Segmentation + feature extraction ────────────────────────────
+function segmentAndPredict(edf) {
+  const { raw, sfreq, duration } = edf;
+  const winSamp = Math.round(10 * sfreq);
+  const nWin = Math.floor(duration / 10);
+  const windows = [];
+
+  for (let w = 0; w < nWin; w++) {
+    const t0 = w * 10;
+    const t1 = t0 + 10;
+    const s0 = w * winSamp;
+    const features = extractFeatures(raw, s0, winSamp, sfreq);
+    windows.push({ w, t0, t1, features, label: 'normal' });
+  }
+  return windows;
+}
+
+function extractFeatures(raw, s0, winSamp, sfreq) {
+  // Simplified spectral power by band + variance + ZCR per channel
+  // (mirrors features.py logic in JS)
+  const nCh = raw.length;
+  const feats = [];
+
+  for (let ci = 0; ci < nCh; ci++) {
+    const seg = raw[ci].slice(s0, s0 + winSamp);
+    if (seg.length < 16) { feats.push(...new Array(7).fill(0)); continue; }
+
+    // Welch-like PSD via FFT chunks (simplified)
+    const psd = computePSD(seg, sfreq);
+    const total = psd.power.reduce((a,b) => a+b, 1e-12);
+
+    const bandPow = (lo, hi) => {
+      let s = 0, n = 0;
+      psd.freqs.forEach((f,i) => { if (f>=lo && f<=hi) { s += psd.power[i]; n++; } });
+      return n ? s / total : 0;
+    };
+
+    const variance = seg.reduce((a,v) => a + v*v, 0) / seg.length -
+                     Math.pow(seg.reduce((a,v) => a+v, 0)/seg.length, 2);
+    let zcr = 0;
+    for (let i = 1; i < seg.length; i++) if ((seg[i]>=0) !== (seg[i-1]>=0)) zcr++;
+    zcr /= seg.length;
+
+    feats.push(
+      bandPow(0.5, 4), bandPow(4, 8), bandPow(8, 13),
+      bandPow(13, 30), bandPow(30, 70),
+      variance, zcr
+    );
+  }
+  return feats;
+}
+
+function computePSD(seg, sfreq) {
+  // Welch-style PSD: split into 256-sample sub-windows, average power.
+  // O(n) per band — no full DFT.
+  const SUB = 256;
+  const nSub = Math.floor(seg.length / SUB);
+  if (nSub === 0) return { freqs: [], power: [] };
+
+  // Accumulate DFT power over sub-windows for each frequency bin
+  const binPow = new Float64Array(SUB / 2);
+  for (let s = 0; s < nSub; s++) {
+    const base = s * SUB;
+    for (let k = 1; k < SUB / 2; k++) {
+      let re = 0, im = 0;
+      for (let n = 0; n < SUB; n++) {
+        const phi = 2 * Math.PI * k * n / SUB;
+        const v = seg[base + n];
+        re += v * Math.cos(phi);
+        im -= v * Math.sin(phi);
+      }
+      binPow[k] += (re * re + im * im) / SUB;
+    }
+  }
+  for (let k = 1; k < SUB / 2; k++) binPow[k] /= nSub;
+
+  // Map bins to frequencies
+  const freqs = [], power = [];
+  for (let k = 1; k < SUB / 2; k++) {
+    const f = k * sfreq / SUB;
+    if (f > 70) break;
+    freqs.push(f);
+    power.push(binPow[k]);
+  }
+  return { freqs, power };
+}
+
+// ── Simplified classifier (heuristic — real model needs WASM/API) ─
+function classifyWindow(features) {
+  // Heuristic based on spectral ratios — demo-quality only
+  // In production this would call a WASM-compiled LightGBM
+  const nCh = Math.floor(features.length / 7);
+  let deltaSum = 0, betaSum = 0, gammaSum = 0, varSum = 0, zcrSum = 0;
+
+  for (let c = 0; c < nCh; c++) {
+    const base = c * 7;
+    deltaSum  += features[base + 0];
+    betaSum   += features[base + 3];
+    gammaSum  += features[base + 4];
+    varSum    += features[base + 5];
+    zcrSum    += features[base + 6];
+  }
+  deltaSum /= nCh; betaSum /= nCh; gammaSum /= nCh;
+  varSum /= nCh; zcrSum /= nCh;
+
+  // High gamma + high variance → seizure candidate
+  if (gammaSum > 0.22 && varSum > 2000) return 'seizure';
+  // High delta, low ZCR, low var → GPD/LPD pattern
+  if (deltaSum > 0.55 && zcrSum < 0.05 && betaSum < 0.08) {
+    return varSum > 500 ? 'gpd' : 'lpd';
+  }
+  // Elevated delta with moderate ZCR → LRDA/GRDA
+  if (deltaSum > 0.45 && zcrSum < 0.08 && betaSum < 0.1) return 'lrda';
+  // Otherwise normal
+  return 'normal';
+}
+
+// ── Build annotation tracks from predictions ──────────────────────
+function buildTracks() {
+  if (!loadedFromApi || !baseTracks || !Object.keys(baseTracks).length) {
+    const segs = [];
+    let cur = null;
+    predictions.forEach(p => {
+      if (!cur || cur.label !== p.label) {
+        cur = { t0: p.t0, t1: p.t1, label: p.label };
+        segs.push(cur);
+      } else {
+        cur.t1 = p.t1;
+      }
+    });
+    baseTracks = { 'AI': segs };
+  }
+  tracks = { ...baseTracks };
+  if (manualAnnotations.length) {
+    tracks['Annotations'] = manualAnnotations
+      .slice()
+      .sort((a, b) => a.t0 - b.t0)
+      .map(a => ({ t0: a.t0, t1: a.t1, label: a.label, id: a.id }));
+  }
+}
+
+// ── Build viewer internals ─────────────────────────────────────────
+function buildViewer() {
+  buildTracks();
+  buildTrackMinimap();
+  buildStats();
+  buildLegend();
+  refreshAnalysisPanel();
+  refreshSavedAnnotationsList();
+}
+
+function buildTrackMinimap() {
+  const dur = edfData.duration;
+  const container = document.getElementById('track-container');
+  container.innerHTML = '';
+
+  Object.entries(tracks).forEach(([name, segs]) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'ann-track';
+    wrap.innerHTML = `<div class="ann-track-label">${name}</div>`;
+    const bar = document.createElement('div');
+    bar.className = 'ann-track-bar';
+    segs.forEach(seg => {
+      const pct0 = seg.t0 / dur * 100;
+      const pctW = (seg.t1 - seg.t0) / dur * 100;
+      const color = LABEL_COLORS[seg.label] || '#9E9E9E';
+      const div = document.createElement('div');
+      div.className = 'ann-seg';
+      const isSelected = seg.id && seg.id === selectedAnnotationId;
+      div.style.cssText = `left:${pct0}%;width:${Math.max(0.3,pctW)}%;background:${color};${isSelected ? 'outline:2px solid #C8F135;z-index:2;' : ''}`;
+      if (pctW > 4) {
+        const lbl = document.createElement('div');
+        lbl.className = 'ann-seg-label';
+        lbl.style.left = '3px';
+        lbl.textContent = seg.label;
+        div.appendChild(lbl);
+      }
+      bar.appendChild(div);
+    });
+    wrap.appendChild(bar);
+    container.appendChild(wrap);
+  });
+}
+
+function buildStats() {
+  const counts = {};
+  predictions.forEach(p => counts[p.label] = (counts[p.label]||0)+1);
+  const total = predictions.length;
+  const container = document.getElementById('stats-container');
+  container.innerHTML = '';
+
+  Object.entries(counts).sort((a,b) => b[1]-a[1]).forEach(([lbl, cnt]) => {
+    const pct = (cnt/total*100).toFixed(0);
+    const isPatho = !['normal','other'].includes(lbl);
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = `
+      <span class="stat-lbl" style="display:flex;align-items:center;gap:6px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${LABEL_COLORS[lbl]||'#9E9E9E'};display:inline-block;flex-shrink:0;"></span>
+        ${lbl}
+      </span>
+      <span class="stat-val ${isPatho ? 'warn' : 'good'}">${pct}% <span style="font-weight:400;font-size:10px;color:var(--text-3)">(${cnt})</span></span>`;
+    container.appendChild(row);
+  });
+
+  const durMin = (edfData.duration / 60).toFixed(1);
+  const row2 = document.createElement('div');
+  row2.className = 'stat-row';
+  row2.style.marginTop = '4px';
+  row2.innerHTML = `<span class="stat-lbl">Duration</span><span class="stat-val">${durMin} min</span>`;
+  container.appendChild(row2);
+
+  const chRow = document.createElement('div');
+  chRow.className = 'stat-row';
+  chRow.innerHTML = `<span class="stat-lbl">Canais</span><span class="stat-val">${getDisplayedSignals(startTime, Math.min(windowSize, edfData.duration)).length}</span>`;
+  container.appendChild(chRow);
+}
+
+function buildLegend() {
+  const container = document.getElementById('legend-container');
+  container.innerHTML = '';
+  Object.entries(LABEL_COLORS).forEach(([lbl, col]) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2);';
+    div.innerHTML = `<span style="width:10px;height:10px;border-radius:50%;background:${col};display:inline-block;flex-shrink:0;"></span>${lbl}`;
+    container.appendChild(div);
+  });
+}
+
+// ── EEG Viewer ────────────────────────────────────────────────────
+let SFREQ_DS = 200;  // updated from edfData after parse
+let N_CH, CH_NAMES, DURATION, N_SAMPLES;
+
+function initViewer() {
+  N_CH      = edfData.channels.length;
+  CH_NAMES  = edfData.channels;
+  DURATION  = edfData.duration;
+  N_SAMPLES = edfData.rawDs[0].length;
+  SFREQ_DS  = edfData.dsFreq;
+}
+
+// Simple IIR highpass to remove slow drift (applied per displayed segment)
+function highpass(seg, cutHz, fs) {
+  if (!cutHz || cutHz <= 0) return seg;
+  const RC = 1 / (2 * Math.PI * cutHz);
+  const dt = 1 / fs;
+  const alpha = RC / (RC + dt);
+  const out = new Float64Array(seg.length);
+  out[0] = seg[0];
+  for (let i = 1; i < seg.length; i++) {
+    out[i] = alpha * (out[i-1] + seg[i] - seg[i-1]);
+  }
+  return out;
+}
+
+function lowpass(seg, cutHz, fs) {
+  if (cutHz === -1) return seg;
+  if (!cutHz || cutHz <= 0) return seg;
+  const RC = 1 / (2 * Math.PI * cutHz);
+  const dt = 1 / fs;
+  const alpha = dt / (RC + dt);
+  const out = new Float64Array(seg.length);
+  out[0] = seg[0];
+  for (let i = 1; i < seg.length; i++) {
+    out[i] = out[i - 1] + alpha * (seg[i] - out[i - 1]);
+  }
+  return out;
+}
+
+function applyLowpass(seg, cutHz, fs) {
+  if (cutHz === -1) return seg;
+  if (!cutHz || cutHz <= 0) return seg;
+  let out = lowpass(seg, cutHz, fs);
+  out = lowpass(out, cutHz, fs);
+  return out;
+}
+
+function smoothSignal(seg, radius = 2) {
+  if (!seg || seg.length < 5 || radius <= 0) return seg;
+  const out = new Float64Array(seg.length);
+  for (let i = 0; i < seg.length; i++) {
+    let sum = 0;
+    let count = 0;
+    for (let j = Math.max(0, i - radius); j <= Math.min(seg.length - 1, i + radius); j++) {
+      sum += seg[j];
+      count++;
+    }
+    out[i] = sum / count;
+  }
+  return out;
+}
+
+function traceColor(ci) {
+  if (ci >= 19) return getComputedStyle(document.documentElement).getPropertyValue('--trace-soft').trim() || '#4D5C5A';
+  return getComputedStyle(document.documentElement).getPropertyValue('--trace').trim() || '#344240';
+}
+
+const BIPOLAR_PAIRS = [
+  ['FP1', 'F7'],
+  ['F7', 'T3'],
+  ['T3', 'T5'],
+  ['T5', 'O1'],
+  ['FP1', 'F3'],
+  ['F3', 'C3'],
+  ['C3', 'P3'],
+  ['P3', 'O1'],
+  ['FZ', 'CZ'],
+  ['CZ', 'PZ'],
+  ['FP2', 'F8'],
+  ['F8', 'T4'],
+  ['T4', 'T6'],
+  ['T6', 'O2'],
+  ['FP2', 'F4'],
+  ['F4', 'C4'],
+  ['C4', 'P4'],
+  ['P4', 'O2'],
+];
+
+function channelIndexMap() {
+  const map = new Map();
+  edfData.channels.forEach((name, idx) => map.set(String(name).toUpperCase(), idx));
+  return map;
+}
+
+function rawSegmentByIndex(idx, t0, dur) {
+  const s0 = Math.max(0, Math.round(t0 * SFREQ_DS));
+  const s1 = Math.min(N_SAMPLES, Math.round((t0 + dur) * SFREQ_DS));
+  return edfData.rawDs[idx].slice(s0, s1);
+}
+
+function subtractSegments(a, b) {
+  const n = Math.min(a.length, b.length);
+  const out = new Float64Array(n);
+  for (let i = 0; i < n; i++) out[i] = a[i] - b[i];
+  return out;
+}
+
+function computeStd(seg, mean = 0) {
+  if (!seg || !seg.length) return 0;
+  let sum = 0;
+  for (let i = 0; i < seg.length; i++) {
+    const delta = seg[i] - mean;
+    sum += delta * delta;
+  }
+  return Math.sqrt(sum / seg.length);
+}
+
+function montageGain() {
+  if (montageMode === 'bipolar') return 2.4;
+  if (montageMode === 'cz') return 2.1;
+  return 1.8;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getDisplayedSignals(t0, dur) {
+  const idxMap = channelIndexMap();
+  const displayed = [];
+
+  if (montageMode === 'referential') {
+    edfData.channels.forEach((name, idx) => {
+      displayed.push({ name, data: rawSegmentByIndex(idx, t0, dur), baseIndex: idx });
+    });
+    return displayed;
+  }
+
+  if (montageMode === 'bipolar') {
+    BIPOLAR_PAIRS.forEach(([left, right]) => {
+      const li = idxMap.get(left);
+      const ri = idxMap.get(right);
+      if (li == null || ri == null) return;
+      displayed.push({
+        name: `${left}-${right}`,
+        data: subtractSegments(rawSegmentByIndex(li, t0, dur), rawSegmentByIndex(ri, t0, dur)),
+        baseIndex: Math.min(li, ri),
+      });
+    });
+    ['CA1', 'CA2', 'CA3'].forEach((name) => {
+      const idx = idxMap.get(name);
+      if (idx == null) return;
+      displayed.push({ name, data: rawSegmentByIndex(idx, t0, dur), baseIndex: idx });
+    });
+    return displayed;
+  }
+
+  const czIdx = idxMap.get('CZ');
+  edfData.channels.forEach((name, idx) => {
+    if (String(name).toUpperCase() === 'CZ') return;
+    if (String(name).toUpperCase().startsWith('CA')) {
+      displayed.push({ name, data: rawSegmentByIndex(idx, t0, dur), baseIndex: idx });
+      return;
+    }
+    if (czIdx == null) {
+      displayed.push({ name, data: rawSegmentByIndex(idx, t0, dur), baseIndex: idx });
+      return;
+    }
+    displayed.push({
+      name: `${name}-CZ`,
+      data: subtractSegments(rawSegmentByIndex(idx, t0, dur), rawSegmentByIndex(czIdx, t0, dur)),
+      baseIndex: idx,
+    });
+  });
+  return displayed;
+}
+
+function annotationXToTime(x, labelW, plotW) {
+  return startTime + clamp((x - labelW) / plotW, 0, 1) * windowSize;
+}
+
+function findAnnotationAtTime(t) {
+  return manualAnnotations.find(a => a.t0 <= t && a.t1 >= t) || null;
+}
+
+function drawPolyline(ctx, points) {
+  if (points.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length - 1; i++) {
+    const xc = (points[i].x + points[i + 1].x) / 2;
+    const yc = (points[i].y + points[i + 1].y) / 2;
+    ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+  }
+  const last = points[points.length - 1];
+  ctx.lineTo(last.x, last.y);
+  ctx.stroke();
+}
+
+function resize() {
+  if (!edfData) return;
+  initViewer();
+  const wrap = document.getElementById('canvas-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  const c = document.getElementById('eeg-canvas');
+  c.style.width = `${W}px`;
+  c.style.height = `${H}px`;
+  c.width = Math.round(W * dpr);
+  c.height = Math.round(H * dpr);
+  const tl = document.getElementById('tl-canvas');
+  const tlw = document.getElementById('timeline-wrap');
+  tl.style.width = `${tlw.clientWidth}px`;
+  tl.style.height = `${tlw.clientHeight}px`;
+  tl.width = Math.round(tlw.clientWidth * dpr);
+  tl.height = Math.round(tlw.clientHeight * dpr);
+  if (cmpVisible) resizeCmp();
+  draw(); drawTimeline();
+}
+
+function getSamples(ci, t0, dur) {
+  const s0 = Math.max(0, Math.round(t0 * SFREQ_DS));
+  const s1 = Math.min(N_SAMPLES, Math.round((t0 + dur) * SFREQ_DS));
+  return edfData.rawDs[ci].slice(s0, s1);
+}
+
+const CH_STATS_CACHE = {};
+function chStats(ci) {
+  if (!CH_STATS_CACHE[ci]) {
+    const d = edfData.rawDs[ci];
+    const mean = d.reduce((a,b)=>a+b,0)/d.length;
+    const std  = Math.sqrt(d.reduce((a,b)=>a+(b-mean)**2,0)/d.length) || 1;
+    CH_STATS_CACHE[ci] = { mean, std };
+  }
+  return CH_STATS_CACHE[ci];
+}
+
+function draw() {
+  if (!edfData) return;
+  const c = document.getElementById('eeg-canvas');
+  const ctx = c.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = c.clientWidth, H = c.clientHeight;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const labelW = 72, plotW = W - labelW - 8;
+  const topPad = 8;
+  const bottomAxisH = 16;
+  const bottomPad = 6;
+  const plotTop = topPad;
+  const plotBottom = H - bottomAxisH - bottomPad;
+  const plotHeight = Math.max(1, plotBottom - plotTop);
+  const displayedSignals = getDisplayedSignals(startTime, windowSize);
+  const rowH = plotHeight / Math.max(1, displayedSignals.length);
+  const minorPerSecond = 5;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#FCFDFE';
+  ctx.fillRect(0, 0, W, H);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // horizontal separators
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid-row');
+  ctx.lineWidth = 1;
+  for (let i = 1; i < displayedSignals.length; i++) {
+    const y = plotTop + i * rowH;
+    ctx.beginPath(); ctx.moveTo(labelW, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  const baselines = [];
+  for (let i = 0; i < displayedSignals.length; i++) {
+    baselines.push(plotTop + (i + 0.5) * rowH);
+  }
+
+  // vertical grid: minor + major
+  ctx.lineWidth = 0.5;
+  const nMinor = windowSize * minorPerSecond;
+  for (let tick = 0; tick <= nMinor; tick++) {
+    const t = tick / minorPerSecond;
+    const x = labelW + (t / windowSize) * plotW;
+    const isMajor = tick % minorPerSecond === 0;
+    ctx.strokeStyle = isMajor
+      ? getComputedStyle(document.documentElement).getPropertyValue('--grid-major')
+      : getComputedStyle(document.documentElement).getPropertyValue('--grid-minor');
+    ctx.setLineDash(isMajor ? [3, 5] : []);
+    ctx.beginPath(); ctx.moveTo(x, plotTop); ctx.lineTo(x, plotBottom); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // annotation bands
+  const winPreds = predictions.filter(p => p.t1 > startTime && p.t0 < startTime + windowSize);
+  winPreds.forEach(p => {
+    const x0 = labelW + Math.max(0,(p.t0-startTime)/windowSize)*plotW;
+    const x1 = labelW + Math.min(1,(p.t1-startTime)/windowSize)*plotW;
+    if (x1 <= labelW || x0 >= W || p.label === 'normal') return;
+    const col = LABEL_COLORS[p.label] || '#9E9E9E';
+    ctx.fillStyle = col + '12';
+    ctx.fillRect(x0, plotTop, x1-x0, plotHeight);
+    ctx.strokeStyle = col + '55';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(x0, plotTop); ctx.lineTo(x0, plotBottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = col + 'c8';
+    ctx.font = '600 9px "Outfit",sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(p.label, x0+3, plotTop + 10);
+  });
+
+  manualAnnotations
+    .filter(a => a.t1 > startTime && a.t0 < startTime + windowSize)
+    .forEach(a => {
+      const x0 = labelW + Math.max(0, (a.t0 - startTime) / windowSize) * plotW;
+      const x1 = labelW + Math.min(1, (a.t1 - startTime) / windowSize) * plotW;
+      const color = LABEL_COLORS[a.label] || '#C8F135';
+      const isSelected = a.id === selectedAnnotationId;
+      ctx.fillStyle = isSelected ? 'rgba(200,241,53,0.18)' : 'rgba(200,241,53,0.10)';
+      ctx.fillRect(x0, plotTop, x1 - x0, plotHeight);
+      ctx.strokeStyle = isSelected ? '#A8D020' : 'rgba(168,208,32,0.85)';
+      ctx.lineWidth = isSelected ? 2 : 1.5;
+      ctx.setLineDash([]);
+      ctx.strokeRect(x0, plotTop, x1 - x0, plotHeight);
+      ctx.fillStyle = '#293221';
+      ctx.font = '700 10px var(--font)';
+      ctx.textAlign = 'left';
+      ctx.fillText(a.label, x0 + 6, plotTop + 16);
+    });
+
+  if (dragAnnotation) {
+    const x0 = labelW + Math.max(0, (dragAnnotation.t0 - startTime) / windowSize) * plotW;
+    const x1 = labelW + Math.min(1, (dragAnnotation.t1 - startTime) / windowSize) * plotW;
+    ctx.fillStyle = 'rgba(200,241,53,0.12)';
+    ctx.fillRect(x0, plotTop, x1 - x0, plotHeight);
+    ctx.strokeStyle = '#C8F135';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x0, plotTop, x1 - x0, plotHeight);
+  }
+
+  // left gutter
+  ctx.fillStyle = '#FCFDFE';
+  ctx.fillRect(0, 0, labelW, H);
+  ctx.strokeStyle = '#E1E7EE';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(labelW - 0.5, 0);
+  ctx.lineTo(labelW - 0.5, H);
+  ctx.stroke();
+
+  // channel baselines
+  ctx.strokeStyle = 'rgba(110, 126, 145, 0.42)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < baselines.length; i++) {
+    const y = baselines[i];
+    ctx.beginPath(); ctx.moveTo(labelW, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // traces
+  for (let ci = 0; ci < displayedSignals.length; ci++) {
+    const channel = displayedSignals[ci];
+    let raw = channel.data;
+    raw = highpass(raw, lowCutHz, SFREQ_DS);
+    raw = applyLowpass(raw, highCutHz, SFREQ_DS);
+    raw = smoothSignal(raw, 1);
+
+    let mean = 0;
+    for (let i = 0; i < raw.length; i++) mean += raw[i];
+    mean = raw.length ? mean / raw.length : 0;
+    const signalStd = computeStd(raw, mean) || 1;
+    const scaleInfluence = clamp(220 / Math.max(scale, 10), 0.24, 2.4);
+    const targetStdPx = rowH * clamp(0.16 * scaleInfluence * visualGain, 0.14, 0.34);
+    const adaptivePixPerUV = targetStdPx / signalStd;
+    const minimumPixPerUV = (rowH * 0.035 * montageGain()) / Math.max(signalStd, 1);
+    const pixPerUV = Math.max(adaptivePixPerUV, minimumPixPerUV);
+
+    const maxPts = Math.min(raw.length, Math.max(1200, plotW * 2.5));
+    const step = Math.max(1, raw.length / maxPts);
+    const yCenter = (ci + 0.5) * rowH;
+    const points = [];
+
+    for (let pi = 0; pi < maxPts; pi++) {
+      const si = Math.min(raw.length - 1, Math.round(pi * step));
+      const x = labelW + 4 + (pi / (maxPts - 1)) * (plotW - 8);
+      const unclampedY = yCenter - (raw[si] - mean) * pixPerUV;
+      const maxOffset = rowH * 0.40;
+      const y = clamp(unclampedY, yCenter - maxOffset, yCenter + maxOffset);
+      points.push({ x, y });
+    }
+    ctx.strokeStyle = traceColor(channel.baseIndex ?? ci);
+    ctx.globalAlpha = 0.97;
+    ctx.lineWidth = channel.name.startsWith('CA') ? 1.7 : 1.45;
+    ctx.setLineDash([]);
+    drawPolyline(ctx, points);
+    ctx.globalAlpha = 1;
+
+    // channel label
+    ctx.fillStyle = '#7F8B98';
+    ctx.font = '600 10px "DM Mono",monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(channel.name || '', labelW - 10, yCenter + 4);
+  }
+
+  // time axis strip
+  ctx.fillStyle = 'rgba(248,250,252,0.98)';
+  ctx.fillRect(labelW, H - 16, plotW, 16);
+  ctx.fillStyle = '#82909F';
+  ctx.font = '9px "DM Mono",monospace';
+  ctx.textAlign = 'center';
+  const tickStep = windowSize <= 10 ? 1 : windowSize <= 30 ? 5 : 10;
+  for (let t = 0; t <= windowSize; t += tickStep) {
+    const x = labelW + (t/windowSize)*plotW;
+    ctx.fillText(fmtTime(startTime+t), x, H - 4);
+  }
+}
+
+function drawTimeline() {
+  if (!edfData) return;
+  const tl = document.getElementById('tl-canvas');
+  const ctx = tl.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = tl.clientWidth, H = tl.clientHeight;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const LABEL_W = 44;
+  const plotW = W - LABEL_W;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#131922';
+  ctx.fillRect(0, 0, W, H);
+
+  // mini signal (first channel)
+  const d = edfData.rawDs[0];
+  const { mean, std } = chStats(0);
+  const maxV = std * 3;
+  const tlPoints = [];
+  for (let i = 0; i < d.length; i++) {
+    const px = LABEL_W + (i/d.length)*plotW;
+    const py = H*0.5 - ((d[i]-mean)/maxV)*(H*0.32);
+    tlPoints.push({ x: px, y: py });
+  }
+  ctx.strokeStyle = 'rgba(166, 214, 85, 0.50)';
+  ctx.lineWidth = 1;
+  drawPolyline(ctx, tlPoints);
+
+  // AI prediction bands
+  predictions.forEach(p => {
+    const x0 = LABEL_W + (p.t0/DURATION)*plotW;
+    const xw = Math.max(1, (p.t1-p.t0)/DURATION*plotW);
+    const col = LABEL_COLORS[p.label] || '#9E9E9E';
+    ctx.fillStyle = col + '4D';
+    ctx.fillRect(x0, 0, xw, H);
+  });
+
+  // current window
+  const cx0 = LABEL_W + (startTime/DURATION)*plotW;
+  const cxw = (windowSize/DURATION)*plotW;
+  ctx.fillStyle = 'rgba(200,241,53,0.14)';
+  ctx.fillRect(cx0, 0, cxw, H);
+  ctx.strokeStyle = '#C8F135';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(cx0, 0, cxw, H);
+
+  // time marks
+  ctx.fillStyle = '#555';
+  ctx.font = '8px "DM Mono",monospace';
+  ctx.textAlign = 'center';
+  for (let t = 0; t <= DURATION; t += 60) {
+    const x = LABEL_W + (t/DURATION)*plotW;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+    ctx.fillStyle = '#666';
+    ctx.fillText(fmtTime(t), x, H-2);
+  }
+}
+
+function navigate(t) {
+  startTime = Math.max(0, Math.min(DURATION - windowSize, t));
+  if (!selectedAnnotationId) currentWindowReview = makeWindowReview();
+  document.getElementById('time-lbl').textContent =
+    fmtTime(startTime) + ' – ' + fmtTime(Math.min(DURATION, startTime + windowSize));
+  draw(); drawTimeline(); updatePanel(); refreshAnalysisPanel();
+  if (cmpVisible) drawCmp();
+  persistUiState();
+}
+
+// timeline click
+document.getElementById('tl-canvas').addEventListener('click', e => {
+  if (!edfData) return;
+  const tl = document.getElementById('tl-canvas');
+  const rect = tl.getBoundingClientRect();
+  const LABEL_W = 44;
+  const plotW = tl.width - LABEL_W;
+  const x = e.clientX - rect.left;
+  if (x < LABEL_W) return;
+  navigate(((x - LABEL_W) / plotW) * DURATION);
+});
+
+const eegCanvas = document.getElementById('eeg-canvas');
+eegCanvas.addEventListener('mousedown', e => {
+  if (!edfData) return;
+  const rect = eegCanvas.getBoundingClientRect();
+  const labelW = 72;
+  const plotW = eegCanvas.clientWidth - labelW - 8;
+  const x = e.clientX - rect.left;
+  if (x < labelW) return;
+
+  if (interactionMode === 'annotate') {
+    const t = annotationXToTime(x, labelW, plotW);
+    dragAnnotation = { t0: t, t1: t };
+    return;
+  }
+
+  if (interactionMode === 'select') {
+    const t = annotationXToTime(x, labelW, plotW);
+    const hit = findAnnotationAtTime(t);
+    selectedAnnotationId = hit ? hit.id : null;
+    if (!hit) currentWindowReview = makeWindowReview();
+    updateAnnotationControls();
+    buildViewer();
+    draw();
+  }
+});
+
+window.addEventListener('mousemove', e => {
+  if (!dragAnnotation || interactionMode !== 'annotate') return;
+  const rect = eegCanvas.getBoundingClientRect();
+  const labelW = 72;
+  const plotW = eegCanvas.clientWidth - labelW - 8;
+  const x = e.clientX - rect.left;
+  const t = annotationXToTime(x, labelW, plotW);
+  dragAnnotation.t1 = t;
+  draw();
+});
+
+window.addEventListener('mouseup', () => {
+  if (!dragAnnotation || interactionMode !== 'annotate') return;
+  const t0 = Math.min(dragAnnotation.t0, dragAnnotation.t1);
+  const t1 = Math.max(dragAnnotation.t0, dragAnnotation.t1);
+  if (t1 - t0 >= 0.2) {
+    const ann = {
+      id: `ann_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      t0,
+      t1,
+      label: annotationType,
+      occurrenceType: '—',
+      modelMarked: predictions.filter(p => p.t1 > t0 && p.t0 < t1).map(p => p.label).filter((v, i, arr) => arr.indexOf(v) === i),
+      youThink: [annotationType],
+      lateralized: '',
+      modelGrade: '-',
+      comment: '',
+    };
+    manualAnnotations.push(ann);
+    selectedAnnotationId = ann.id;
+  }
+  dragAnnotation = null;
+  buildViewer();
+  updateAnnotationControls();
+  draw();
+});
+
+// keyboard navigation
+window.addEventListener('keydown', e => {
+  if (!edfData) return;
+  if (e.key === 'ArrowRight') navigate(startTime + windowSize);
+  if (e.key === 'ArrowLeft')  navigate(startTime - windowSize);
+});
+
+// ── Panel update ─────────────────────────────────────────────────
+function updatePanel() {
+  const mid = startTime + windowSize / 2;
+  const p = predictions.find(w => w.t0 <= mid && w.t1 > mid) || predictions[0];
+  if (!p) return;
+
+  document.getElementById('rp-win-lbl').textContent =
+    fmtTime(startTime) + ' – ' + fmtTime(Math.min(DURATION, startTime + windowSize));
+
+  const badge = document.getElementById('pred-badge');
+  badge.className = 'pred-badge lbl-' + (p.label || 'normal');
+  document.getElementById('pred-label').textContent = p.label || 'normal';
+  document.getElementById('pred-conf').textContent = p.confidence ? `${Math.round(p.confidence*100)}%` : '';
+}
+
+// ── Comparison strip ─────────────────────────────────────────────
+function toggleCmp() {
+  cmpVisible = !cmpVisible;
+  const strip = document.getElementById('cmp-strip');
+  strip.classList.toggle('visible', cmpVisible);
+  document.getElementById('btn-cmp').classList.toggle('active', cmpVisible);
+  if (cmpVisible) {
+    setTimeout(() => { resizeCmp(); drawCmp(); }, 310);
+  }
+}
+
+function resizeCmp() {
+  const strip = document.getElementById('cmp-strip');
+  const c = document.getElementById('cmp-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  c.style.width = `${strip.clientWidth}px`;
+  c.style.height = `${strip.clientHeight}px`;
+  c.width = Math.round(strip.clientWidth * dpr);
+  c.height = Math.round(strip.clientHeight * dpr);
+}
+
+function drawCmp() {
+  const c = document.getElementById('cmp-canvas');
+  if (!c.width) return;
+  const ctx = c.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = c.clientWidth, H = c.clientHeight;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const LABEL_W = 72;
+  const plotW = W - LABEL_W;
+  const TRACK_NAMES = Object.keys(tracks);
+  const ROW_H = Math.floor((H - 20) / TRACK_NAMES.length);
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#151B24';
+  ctx.fillRect(0, 0, W, H);
+
+  TRACK_NAMES.forEach((name, ri) => {
+    const y0 = 20 + ri * ROW_H;
+    const segs = tracks[name] || [];
+    ctx.fillStyle = ri%2 ? '#141414' : '#1A1A1A';
+    ctx.fillRect(0, y0, W, ROW_H);
+    ctx.fillStyle = '#555';
+    ctx.font = 'bold 9px "Outfit",sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(name, 6, y0 + ROW_H/2 + 3);
+    segs.forEach(seg => {
+      const x0 = LABEL_W + (seg.t0/DURATION)*plotW;
+      const xw = Math.max(1,(seg.t1-seg.t0)/DURATION*plotW);
+      ctx.fillStyle = (LABEL_COLORS[seg.label]||'#888') + 'bb';
+      ctx.fillRect(x0, y0+3, xw, ROW_H-6);
+      if (xw > 24) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '8px sans-serif';
+        ctx.fillText(seg.label, x0+2, y0+ROW_H/2+3);
+      }
+    });
+    // cursor line
+    const cx = LABEL_W + (startTime/DURATION)*plotW;
+    ctx.strokeStyle = '#C8F135';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3,2]);
+    ctx.beginPath(); ctx.moveTo(cx,y0); ctx.lineTo(cx,y0+ROW_H); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // header
+  ctx.fillStyle = '#222';
+  ctx.fillRect(0, 0, W, 20);
+  ctx.fillStyle = '#666';
+  ctx.font = 'bold 9px "Outfit",sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('COMPARISON · ANNOTATIONS', 8, 13);
+
+  // time marks
+  for (let t = 0; t <= DURATION; t += 60) {
+    const x = LABEL_W + (t/DURATION)*plotW;
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x,20); ctx.lineTo(x,H); ctx.stroke();
+  }
+
+  // click to navigate
+  c.onclick = ev => {
+    const rect = c.getBoundingClientRect();
+    const x = ev.clientX - rect.left;
+    if (x < LABEL_W) return;
+    navigate(((x-LABEL_W)/plotW)*DURATION);
+  };
+}
+
+// ── Scale / window / filter controls ──────────────────────────────
+document.getElementById('sel-scale').addEventListener('change', e => {
+  scale = parseFloat(e.target.value);
+  draw();
+  persistUiState();
+});
+document.getElementById('sel-window').addEventListener('change', e => {
+  windowSize = parseInt(e.target.value);
+  if (!selectedAnnotationId) currentWindowReview = makeWindowReview();
+  navigate(Math.min(startTime, Math.max(0, DURATION - windowSize)));
+  buildStats();
+  persistUiState();
+});
+document.getElementById('sel-low').addEventListener('change', e => {
+  lowCutHz = parseFloat(e.target.value);
+  if (highCutHz > 0 && lowCutHz > 0 && highCutHz <= lowCutHz) {
+    highCutHz = Math.max(lowCutHz + 1, 15);
+    document.getElementById('sel-high').value = String(highCutHz);
+  }
+  draw();
+  persistUiState();
+});
+document.getElementById('sel-high').addEventListener('change', e => {
+  highCutHz = parseFloat(e.target.value);
+  if (highCutHz > 0 && lowCutHz > 0 && highCutHz <= lowCutHz) {
+    lowCutHz = 0;
+    document.getElementById('sel-low').value = '0';
+  }
+  draw();
+  persistUiState();
+});
+document.getElementById('sel-montage').addEventListener('change', e => {
+  montageMode = e.target.value;
+  buildStats();
+  draw();
+  persistUiState();
+});
+
+document.getElementById('btn-pan').addEventListener('click', () => setInteractionMode('pan'));
+document.getElementById('btn-annotate').addEventListener('click', () => setInteractionMode('annotate'));
+document.getElementById('btn-select').addEventListener('click', () => setInteractionMode('select'));
+document.getElementById('sel-annotation-type').addEventListener('change', e => {
+  annotationType = e.target.value;
+  const selected = manualAnnotations.find(a => a.id === selectedAnnotationId);
+  if (selected) {
+    selected.label = annotationType;
+  } else if (currentWindowReview) {
+    currentWindowReview.label = annotationType;
+    currentWindowReview.youThink = currentWindowReview.youThink?.length ? currentWindowReview.youThink : [annotationType];
+  }
+  buildViewer();
+  draw();
+});
+document.getElementById('annotation-occurrence-type').addEventListener('change', e => {
+  const target = activeReviewTarget();
+  if (!target) return;
+  target.occurrenceType = e.target.value;
+});
+document.getElementById('annotation-comment').addEventListener('input', e => {
+  const target = activeReviewTarget();
+  if (!target) return;
+  target.comment = e.target.value;
+});
+document.getElementById('observer-agreement-level').addEventListener('change', e => {
+  examReview.observerAgreementLevel = e.target.value;
+});
+document.getElementById('observer-comment').addEventListener('input', e => {
+  examReview.observerComment = e.target.value;
+});
+document.getElementById('overall-comment').addEventListener('input', e => {
+  examReview.overallComment = e.target.value;
+});
+document.getElementById('btn-delete-annotation').addEventListener('click', () => {
+  if (!selectedAnnotationId) return;
+  manualAnnotations = manualAnnotations.filter(a => a.id !== selectedAnnotationId);
+  selectedAnnotationId = null;
+  updateAnnotationControls();
+  buildViewer();
+  draw();
+});
+document.getElementById('save-window-annotation').addEventListener('click', () => {
+  let ann = selectedAnnotation();
+  if (!ann) {
+    if (!currentWindowReview) currentWindowReview = makeWindowReview();
+    ann = {
+      id: `ann_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      ...currentWindowReview,
+      label: annotationType,
+    };
+    manualAnnotations.push(ann);
+    selectedAnnotationId = ann.id;
+  }
+  ann.occurrenceType = document.getElementById('annotation-occurrence-type').value;
+  ann.comment = document.getElementById('annotation-comment').value;
+  buildViewer();
+  updateAnnotationControls();
+  draw();
+});
+document.getElementById('export-saved-annotations').addEventListener('click', () => {
+  const payload = {
+    exam_id: selectedExamId || currentFile?.name || null,
+    exported: new Date().toISOString(),
+    observer_agreement: {
+      level: examReview.observerAgreementLevel,
+      comment: examReview.observerComment,
+    },
+    exam_review: {
+      overall_grade: examReview.overallGrade,
+      comment: examReview.overallComment,
+    },
+    annotations: manualAnnotations,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${(selectedExamId || currentFile?.name || 'exam').replace('.edf','')}_manual_annotations.json`;
+  a.click();
+});
+
+// ── Export ────────────────────────────────────────────────────────
+document.getElementById('btn-save').addEventListener('click', () => {
+  const payload = {
+    file: currentFile?.name,
+    exported: new Date().toISOString(),
+    model: 'LightGBM v1 (heuristic)',
+    predictions: predictions.map(p => ({ t0: p.t0, t1: p.t1, label: p.label })),
+    manual_annotations: manualAnnotations.map(a => ({ t0: a.t0, t1: a.t1, label: a.label })),
+    observer_agreement: examReview,
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (currentFile?.name||'eeg').replace('.edf','') + '_ai_predictions.json';
+  a.click();
+});
+
+// ── Utils ─────────────────────────────────────────────────────────
+function fmtTime(s) {
+  const m = Math.floor(s/60);
+  const ss = Math.floor(s%60).toString().padStart(2,'0');
+  return `${m}:${ss}`;
+}
+
+window.addEventListener('resize', () => {
+  hideFloatingTooltip();
+  if (edfData) resize();
+});
+window.addEventListener('scroll', hideFloatingTooltip, true);
+
+async function loadExamManifest() {
+  try {
+    const [manifestRes, legacyRes] = await Promise.all([
+      fetch('/api/exams'),
+      fetch('/legacy_final_reviews.json').catch(() => null),
+    ]);
+    const data = await manifestRes.json();
+    examManifest = data.exams || [];
+    if (legacyRes && legacyRes.ok) {
+      legacyExamReviewSummary = await legacyRes.json();
+    }
+    const opts = ['<option value="">Choose an exam…</option>']
+      .concat(examManifest.map(exam =>
+        `<option value="${exam.exam_id}">${exam.exam_id} · ${Math.round(exam.duration_s/60)} min · ${exam.dominant_label}</option>`
+      ))
+      .join('');
+    selExamToolbar.innerHTML = opts;
+    selExamUpload.innerHTML = opts.replace('Choose an exam…', 'Or choose a saved exam…');
+  } catch (err) {
+    console.warn('Manifest unavailable, local mode only.', err);
+  }
+}
+
+initAuth();
+</script>
+</body>
+</html>

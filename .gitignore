@@ -1,0 +1,41 @@
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Local editor / assistant state
+.claude/
+.codex/
+.agents/
+
+# Clinical / local datasets and artifacts
+data/
+*.edf
+*.pkl
+
+# Generated reports / temporary experiment outputs
+tmp_*.json
+tmp_sql_chunks/
+tmp_sql_chunks_upsert/
+
+# Optional local analysis outputs
+agreement_report.txt
+agreement_results.json
+evaluation_report.txt
+mega_report.txt
+mega_results.json
+viewer/comparison_*.html
+
+# Runtime logs
+*.log
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
