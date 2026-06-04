@@ -50,7 +50,7 @@ function buildPrivateStorageUrl(path: string) {
   if (/^https?:\/\//i.test(cleaned)) return cleaned;
   const supabaseUrl = getSupabaseUrl();
   if (!supabaseUrl) return null;
-  return `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/${cleaned}`;
+  return `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/authenticated/${cleaned}`;
 }
 
 function extractPayloadLocation(exam: ExamRow, aiReview?: AiReviewRow | null) {
