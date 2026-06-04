@@ -31,12 +31,28 @@ function getSupabaseUrl() {
   return Netlify.env.get("SUPABASE_URL") || "";
 }
 
+function getPublishableKey() {
+  return Netlify.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
+}
+
 function getServiceRoleKey() {
   return Netlify.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 }
 
-function buildPublicStorageUrl(path: string) {
+function getViewerPayloadBucket() {
+  return (Netlify.env.get("SUPABASE_VIEWER_PAYLOAD_BUCKET") || "eeg-viewer-payloads").replace(/^\/+|\/+$/g, "");
+}
+
+function normalizeStoragePath(path: string) {
   const cleaned = path.replace(/^\/+/, "");
+  if (!cleaned || /^https?:\/\//i.test(cleaned)) return cleaned;
+  const bucket = getViewerPayloadBucket();
+  if (!bucket || cleaned.startsWith(`${bucket}/`)) return cleaned;
+  return `${bucket}/${cleaned}`;
+}
+
+function buildPublicStorageUrl(path: string) {
+  const cleaned = normalizeStoragePath(path);
   if (!cleaned) return null;
   if (/^https?:\/\//i.test(cleaned)) return cleaned;
   const supabaseUrl = getSupabaseUrl();
@@ -45,7 +61,7 @@ function buildPublicStorageUrl(path: string) {
 }
 
 function buildPrivateStorageUrl(path: string) {
-  const cleaned = path.replace(/^\/+/, "");
+  const cleaned = normalizeStoragePath(path);
   if (!cleaned) return null;
   if (/^https?:\/\//i.test(cleaned)) return cleaned;
   const supabaseUrl = getSupabaseUrl();
@@ -96,18 +112,26 @@ function extractPayloadLocation(exam: ExamRow, aiReview?: AiReviewRow | null) {
   return null;
 }
 
-async function fetchViewerPayload(url: string, access: "public" | "private") {
+async function fetchViewerPayload(url: string, access: "public" | "private", forwardedAuthHeader?: string | null) {
   const headers: Record<string, string> = {
     accept: "application/json",
   };
 
   if (access === "private") {
     const serviceRoleKey = getServiceRoleKey();
-    if (!serviceRoleKey) {
-      throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured.");
+    if (serviceRoleKey) {
+      headers.apikey = serviceRoleKey;
+      headers.Authorization = `Bearer ${serviceRoleKey}`;
+    } else if (forwardedAuthHeader) {
+      const publishableKey = getPublishableKey();
+      if (!publishableKey) {
+        throw new Error("SUPABASE_PUBLISHABLE_KEY is not configured.");
+      }
+      headers.apikey = publishableKey;
+      headers.Authorization = forwardedAuthHeader;
+    } else {
+      throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured and no user session was forwarded.");
     }
-    headers.apikey = serviceRoleKey;
-    headers.Authorization = `Bearer ${serviceRoleKey}`;
   }
 
   const response = await fetch(url, { headers });
@@ -156,10 +180,11 @@ export default async (request: Request) => {
   const aiReview = aiReviews[0] || null;
 
   const payloadLocation = extractPayloadLocation(exam, aiReview);
+  const forwardedAuthHeader = request.headers.get("authorization");
 
   if (payloadLocation) {
     try {
-      const payload = await fetchViewerPayload(payloadLocation.url, payloadLocation.access);
+      const payload = await fetchViewerPayload(payloadLocation.url, payloadLocation.access, forwardedAuthHeader);
       return new Response(JSON.stringify(payload), {
         status: 200,
         headers: jsonHeaders({

@@ -3400,8 +3400,25 @@ async function loadExamFromApi() {
     status.textContent = `Loading ${selectedExamId}…`;
     bar.style.width = '10%';
 
-    const res = await fetch(`/api/exam?id=${encodeURIComponent(selectedExamId)}`);
-    const payload = await res.json();
+    const requestHeaders = {};
+    if (supabaseClient?.auth?.getSession) {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session?.access_token) {
+        requestHeaders.Authorization = `Bearer ${session.access_token}`;
+      }
+    }
+
+    const res = await fetch(`/api/exam?id=${encodeURIComponent(selectedExamId)}`, {
+      headers: requestHeaders,
+    });
+
+    let payload;
+    const responseText = await res.text();
+    try {
+      payload = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      payload = { error: responseText || 'Failed to load exam analysis.' };
+    }
 
     if (!res.ok) {
       const detailLines = [];
