@@ -23,6 +23,7 @@ data/
 tmp_*.json
 tmp_sql_chunks/
 tmp_sql_chunks_upsert/
+viewer_payload_exports/
 
 # Optional local analysis outputs
 agreement_report.txt

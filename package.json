@@ -1,0 +1,11 @@
+{
+  "name": "ngram-ai-training",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python3 api_server.py"
+  },
+  "dependencies": {
+    "@netlify/functions": "^3.1.8"
+  }
+}

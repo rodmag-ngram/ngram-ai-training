@@ -7,7 +7,7 @@
 <style>
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('/viewer/fonts/HelveticaNeueLight.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueLight.otf') format('opentype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -15,7 +15,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('/viewer/fonts/HelveticaNeueBold.ttf') format('truetype');
+  src: url('./fonts/HelveticaNeueBold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -1934,9 +1934,28 @@ const LABEL_BG = {
   seizure:'#FEECEB', gpd:'#EBF4FD', lpd:'#F3EBFD',
   lrda:'#FEF6E8', grda:'#FEEDE8', normal:'#EDFAEE', other:'#F0F0ED',
 };
-const SUPABASE_URL = 'https://wgblfphrlwtbssdbqife.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3SoG1zJ5YjSwWXKNfVix2w_QYMYIvPh';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const FALLBACK_SUPABASE_URL = 'https://wgblfphrlwtbssdbqife.supabase.co';
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3SoG1zJ5YjSwWXKNfVix2w_QYMYIvPh';
+let supabaseClient = null;
+
+async function initSupabaseClient() {
+  let supabaseUrl = FALLBACK_SUPABASE_URL;
+  let supabasePublishableKey = FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+
+  try {
+    const res = await fetch('/api/runtime-config', { cache: 'no-store' });
+    if (res.ok) {
+      const config = await res.json();
+      if (config?.supabaseUrl) supabaseUrl = config.supabaseUrl;
+      if (config?.supabasePublishableKey) supabasePublishableKey = config.supabasePublishableKey;
+    }
+  } catch (error) {
+    console.warn('Runtime config unavailable, using built-in Supabase config.', error);
+  }
+
+  supabaseClient = window.supabase.createClient(supabaseUrl, supabasePublishableKey);
+  return supabaseClient;
+}
 
 // ── State ──────────────────────────────────────────────────────────
 let currentFile = null;
@@ -3145,6 +3164,9 @@ function handleSignedOutState() {
 }
 
 async function initAuth() {
+  if (!supabaseClient) {
+    await initSupabaseClient();
+  }
   document.getElementById('toolbar-upload').style.display = 'none';
   document.getElementById('toolbar-viewer').style.display = 'none';
   const { data: { session } } = await supabaseClient.auth.getSession();
