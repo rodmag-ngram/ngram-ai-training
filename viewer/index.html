@@ -1785,6 +1785,7 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
         <div class="exam-list-actions">
           <button class="tb-btn" id="btn-ai-view" type="button" style="display:none;">AI</button>
           <button class="tb-btn" id="btn-refresh-exams" type="button">Refresh</button>
+          <button class="tb-btn" id="btn-upload-exam" type="button">Upload Exam</button>
         </div>
       </div>
       <div class="exam-list-view" id="exam-list-view">
@@ -2352,6 +2353,9 @@ document.getElementById('btn-refresh-exams')?.addEventListener('click', async ()
   } catch (error) {
     console.error(error);
   }
+});
+document.getElementById('btn-upload-exam')?.addEventListener('click', () => {
+  openUploadExamWorkflow();
 });
 document.getElementById('btn-ai-view')?.addEventListener('click', () => {
   if (!canAccessAiPanel()) return;
@@ -4050,16 +4054,30 @@ function showState(id) {
   persistUiState();
 }
 
-function resetToUpload() {
+function openUploadExamWorkflow() {
+  currentFile = null;
+  edfData = null;
+  predictions = [];
+  baseTracks = {};
+  tracks = {};
+  loadedFromApi = false;
+  setSelectedExam('');
+  resetReviewDraftState();
+  applyDefaultViewerPreset();
+  fileInput.value = '';
+  filePill.classList.remove('visible');
+  pillName.textContent = '—';
+  btnAnalyze.disabled = true;
+  updateViewerExamChrome();
   showState('upload');
   document.getElementById('toolbar-upload').style.display = 'flex';
   document.getElementById('toolbar-viewer').style.display = 'none';
   document.getElementById('time-lbl').style.display = 'none';
   document.getElementById('toolbar-account')?.classList.add('visible');
-  loadedFromApi = false;
-  resetReviewDraftState();
-  applyDefaultViewerPreset();
-  updateViewerExamChrome();
+}
+
+function resetToUpload() {
+  openUploadExamWorkflow();
 }
 
 function returnToExamList() {
