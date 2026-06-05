@@ -5233,16 +5233,15 @@ function draw() {
     let mean = 0;
     for (let i = 0; i < raw.length; i++) mean += raw[i];
     mean = raw.length ? mean / raw.length : 0;
-    const pixPerUV = ((rowH * 0.44) / Math.max(scale, 1)) * visualGain * montageGain();
+    const pixPerUV = ((rowH * 0.52) / Math.max(scale, 1)) * visualGain * montageGain();
 
     const sampleCount = raw.length;
-    const yCenter = (ci + 0.5) * rowH;
+    const yCenter = plotTop + (ci + 0.5) * rowH;
     const points = [];
 
     for (let si = 0; si < sampleCount; si++) {
       const x = labelW + 4 + (si / Math.max(1, sampleCount - 1)) * (plotW - 8);
-      const unclampedY = yCenter - ((raw[si] - mean) * unitFactor) * pixPerUV;
-      const y = clamp(unclampedY, plotTop + 2, plotBottom - 2);
+      const y = yCenter - ((raw[si] - mean) * unitFactor) * pixPerUV;
       points.push({ x, y });
     }
     ctx.strokeStyle = traceColor(channel.baseIndex ?? ci);
