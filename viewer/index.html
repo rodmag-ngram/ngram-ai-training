@@ -3223,6 +3223,8 @@ function buildExamListRowModel(row) {
   const myHumanReview = (row.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile?.id);
   const reviewedBy = formatReviewerList(row.exam_assignments || [], row.metadata?.reviewed_by || []);
   const metrics = row.window_metrics || manifestExam?.window_metrics || {};
+  const hydrationPending = row._windowMetricsHydrationPending === true;
+  const hydrationComplete = row._windowMetricsHydrationComplete === true;
   const fallbackAccuracyRaw = metrics.window_agreement
     ?? manifestExam?.accuracy_vs_consensus
     ?? legacySummary?.accuracy_vs_consensus
@@ -3232,13 +3234,16 @@ function buildExamListRowModel(row) {
   const consensusWindowCount = Number(
     metrics.consensus_window_count
     ?? row._consensusWindowCount
-    ?? (hasConsensusFallback ? 1 : 0)
+    ?? (hasConsensusFallback && !hydrationPending ? 1 : 0)
   );
   const matchedWindowCount = Number(metrics.matched_window_count ?? row._matchedWindowCount ?? 0);
   const accuracyRaw = fallbackAccuracyRaw;
-  const accuracyValue = consensusWindowCount > 0
-    ? formatAccuracyValue(accuracyRaw)
-    : 'No consensus windows';
+  let accuracyValue = 'Calculating…';
+  if (consensusWindowCount > 0) {
+    accuracyValue = formatAccuracyValue(accuracyRaw);
+  } else if (hydrationComplete || (!hydrationPending && hasConsensusFallback === false)) {
+    accuracyValue = 'No consensus windows';
+  }
 
   return {
     row,
@@ -3278,6 +3283,7 @@ function getExamSortValue(item, key) {
         label: item.myReviewStatus || 'pending',
       };
     case 'window_agreement':
+      if (item.accuracyValue === 'Calculating…') return { rank: -3, value: -1, label: 'Calculating…' };
       if (item.accuracyValue === 'No consensus windows') return { rank: -2, value: -1, label: 'No consensus windows' };
       if (item.accuracyValue === 'pending') return { rank: -1, value: -1, label: 'pending' };
       return { rank: 10, value: Number(item.accuracyValue), label: item.accuracyValue };
@@ -3561,7 +3567,9 @@ function renderExamList() {
       <td>${reviewedBy}</td>
       <td><span class="exam-status ${myReviewStatus === 'completed' ? 'status-completed' : statusClass(myReviewStatus)}">${myReviewStatus}</span></td>
       <td>${
-        accuracyValue === 'No consensus windows'
+        accuracyValue === 'Calculating…'
+          ? `<span class="exam-status ${statusClass('pending')}">Calculating…</span>`
+          : accuracyValue === 'No consensus windows'
           ? `<span class="exam-status ${statusClass('pending')}">No consensus windows</span>`
           : accuracyValue === 'pending'
             ? `<span class="exam-status ${statusClass('pending')}">pending</span>`
@@ -3618,6 +3626,11 @@ async function hydrateExamListWindowMetrics(rows) {
   const pendingRows = (Array.isArray(rows) ? rows : []).filter(Boolean);
   if (!pendingRows.length) return;
   const sub = document.getElementById('exam-list-sub');
+  pendingRows.forEach(row => {
+    row._windowMetricsHydrationPending = true;
+    row._windowMetricsHydrationComplete = false;
+  });
+  renderExamList();
   let completed = 0;
   const concurrency = 6;
   let cursor = 0;
@@ -3641,10 +3654,13 @@ async function hydrateExamListWindowMetrics(rows) {
         }
       } catch (error) {
         console.warn(`Could not hydrate agreement for ${examCode}.`, error);
+      } finally {
+        row._windowMetricsHydrationPending = false;
+        row._windowMetricsHydrationComplete = true;
       }
       completed += 1;
       if (examListMetricsHydrationRun === runId) {
-        if (sub) sub.textContent = `Hydrating window agreement… ${completed}/${pendingRows.length}`;
+        if (sub) sub.textContent = `Calculating window agreement… ${completed}/${pendingRows.length}`;
         renderExamList();
       }
     }
@@ -3652,6 +3668,7 @@ async function hydrateExamListWindowMetrics(rows) {
 
   await Promise.all(Array.from({ length: Math.min(concurrency, pendingRows.length) }, () => worker()));
   if (examListMetricsHydrationRun === runId) {
+    if (sub) sub.textContent = `${supabaseExamRows.length} exam(s) available`;
     renderExamList();
   }
 }
