@@ -1971,7 +1971,7 @@ let edfData = null;       // {channels, sfreq, duration, raw}
 let predictions = [];     // [{window, t0, t1, label}]
 let windowSize = 20;
 let startTime = 0;
-let scale = 200;
+let scale = 70;
 let lowCutHz = 0;
 let highCutHz = 100;
 let montageMode = 'referential';
@@ -2011,13 +2011,13 @@ let pendingUiRestoreState = null;
 const UI_STATE_STORAGE_KEY = 'ngram_ai_training_ui_state_v1';
 
 function applyDefaultViewerPreset() {
-  scale = 200;
+  scale = 70;
   lowCutHz = 0;
   highCutHz = 100;
   montageMode = 'referential';
   windowSize = 10;
 
-  document.getElementById('sel-scale').value = '200';
+  document.getElementById('sel-scale').value = '70';
   document.getElementById('sel-low').value = '0';
   document.getElementById('sel-high').value = '100';
   document.getElementById('sel-montage').value = 'referential';
