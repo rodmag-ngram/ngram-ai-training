@@ -15,7 +15,7 @@ MEGA_FEATURES_V1 = ROOT / "mega_features_v1.pkl"
 MEGA_MODEL_PKL = ROOT / "model_mega.pkl"
 MODEL_PKL = ROOT / "model.pkl"
 
-TARGET_SFREQ = 100.0
+TARGET_SFREQ = 200.0
 RATERS = ["elaine", "amanda", "marina"]
 LABEL_COLORS = {
     "normal": "#4CAF50",
@@ -73,7 +73,17 @@ ALL_PRED_LABELS, ALL_PRED_CONF = predict_all_windows()
 
 def downsample(signal: np.ndarray, orig_sfreq: float, target_sfreq: float = TARGET_SFREQ):
     factor = max(1, int(round(orig_sfreq / target_sfreq)))
-    return signal[:, ::factor], orig_sfreq / factor
+    if factor <= 1:
+        return signal, orig_sfreq
+
+    usable = signal.shape[1] - (signal.shape[1] % factor)
+    if usable <= 0:
+        return signal[:, ::factor], orig_sfreq / factor
+
+    trimmed = signal[:, :usable]
+    reshaped = trimmed.reshape(signal.shape[0], -1, factor)
+    averaged = reshaped.mean(axis=2)
+    return averaged, orig_sfreq / factor
 
 
 def merge_segments(items):
@@ -134,7 +144,7 @@ def exam_manifest():
 MANIFEST = exam_manifest()
 
 
-def exam_payload(exam_id: str):
+def exam_payload(exam_id: str, target_sfreq: float = TARGET_SFREQ):
     idxs = EXAM_WINDOWS.get(exam_id)
     if not idxs:
         return None
@@ -142,7 +152,7 @@ def exam_payload(exam_id: str):
     meta_rows = [META[i] for i in idxs]
     signal = np.concatenate([row["signal"] for row in rows], axis=1)
     sfreq = float(rows[0]["sfreq"])
-    signal_ds, ds_freq = downsample(signal, sfreq)
+    signal_ds, ds_freq = downsample(signal, sfreq, target_sfreq=target_sfreq)
 
     X_exam = X[idxs]
     if FEATURE_MEAN is not None and FEATURE_STD is not None:

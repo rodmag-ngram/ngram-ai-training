@@ -27,6 +27,12 @@ def main():
         default=None,
         help="Optional maximum number of exams to export from the manifest.",
     )
+    parser.add_argument(
+        "--target-sfreq",
+        type=float,
+        default=200.0,
+        help="Target sampling frequency for the exported viewer payloads.",
+    )
     args = parser.parse_args()
 
     out_dir = Path(args.out_dir)
@@ -49,7 +55,7 @@ def main():
     index = {}
 
     for idx, exam_id in enumerate(selected_ids, start=1):
-        payload = exam_payload(exam_id)
+        payload = exam_payload(exam_id, target_sfreq=args.target_sfreq)
         out_path = out_dir / f"{exam_id}.json"
         out_path.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
         byte_size = out_path.stat().st_size

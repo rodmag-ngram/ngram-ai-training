@@ -1975,7 +1975,7 @@ let scale = 200;
 let lowCutHz = 0;
 let highCutHz = 100;
 let montageMode = 'referential';
-let visualGain = 1.35;
+let visualGain = 1.0;
 let cmpVisible = false;
 let loadedFromApi = false;
 let examManifest = [];
@@ -4112,9 +4112,19 @@ function computeStd(seg, mean = 0) {
 }
 
 function montageGain() {
-  if (montageMode === 'bipolar') return 2.4;
-  if (montageMode === 'cz') return 2.1;
-  return 1.8;
+  if (montageMode === 'bipolar') return 1.18;
+  if (montageMode === 'cz') return 1.08;
+  return 1.0;
+}
+
+function signalUnitFactor(seg) {
+  if (!seg || !seg.length) return 1;
+  let maxAbs = 0;
+  for (let i = 0; i < seg.length; i++) {
+    const value = Math.abs(seg[i]);
+    if (value > maxAbs) maxAbs = value;
+  }
+  return maxAbs < 0.01 ? 1e6 : 1;
 }
 
 function clamp(value, min, max) {
@@ -4356,34 +4366,27 @@ function draw() {
     let raw = channel.data;
     raw = highpass(raw, lowCutHz, SFREQ_DS);
     raw = applyLowpass(raw, highCutHz, SFREQ_DS);
-    raw = smoothSignal(raw, 1);
+    const unitFactor = signalUnitFactor(raw);
 
     let mean = 0;
     for (let i = 0; i < raw.length; i++) mean += raw[i];
     mean = raw.length ? mean / raw.length : 0;
-    const signalStd = computeStd(raw, mean) || 1;
-    const scaleInfluence = clamp(220 / Math.max(scale, 10), 0.24, 2.4);
-    const targetStdPx = rowH * clamp(0.16 * scaleInfluence * visualGain, 0.14, 0.34);
-    const adaptivePixPerUV = targetStdPx / signalStd;
-    const minimumPixPerUV = (rowH * 0.035 * montageGain()) / Math.max(signalStd, 1);
-    const pixPerUV = Math.max(adaptivePixPerUV, minimumPixPerUV);
+    const pixPerUV = ((rowH * 0.44) / Math.max(scale, 1)) * visualGain * montageGain();
 
-    const maxPts = Math.min(raw.length, Math.max(1200, plotW * 2.5));
-    const step = Math.max(1, raw.length / maxPts);
+    const sampleCount = raw.length;
     const yCenter = (ci + 0.5) * rowH;
     const points = [];
 
-    for (let pi = 0; pi < maxPts; pi++) {
-      const si = Math.min(raw.length - 1, Math.round(pi * step));
-      const x = labelW + 4 + (pi / (maxPts - 1)) * (plotW - 8);
-      const unclampedY = yCenter - (raw[si] - mean) * pixPerUV;
-      const maxOffset = rowH * 0.40;
+    for (let si = 0; si < sampleCount; si++) {
+      const x = labelW + 4 + (si / Math.max(1, sampleCount - 1)) * (plotW - 8);
+      const unclampedY = yCenter - ((raw[si] - mean) * unitFactor) * pixPerUV;
+      const maxOffset = rowH * 0.46;
       const y = clamp(unclampedY, yCenter - maxOffset, yCenter + maxOffset);
       points.push({ x, y });
     }
     ctx.strokeStyle = traceColor(channel.baseIndex ?? ci);
     ctx.globalAlpha = 0.97;
-    ctx.lineWidth = channel.name.startsWith('CA') ? 1.7 : 1.45;
+    ctx.lineWidth = channel.name.startsWith('CA') ? 1.35 : 1.05;
     ctx.setLineDash([]);
     drawPolyline(ctx, points);
     ctx.globalAlpha = 1;
