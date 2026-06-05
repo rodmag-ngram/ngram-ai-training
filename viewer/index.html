@@ -79,6 +79,17 @@ body {
   overflow-y: hidden;
   flex-wrap: nowrap;
 }
+body.viewer-active #toolbar {
+  height: auto;
+  min-height: 62px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  align-items: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
 #toolbar .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
 .toolbar-group {
   display: inline-flex;
@@ -252,9 +263,50 @@ body.viewer-active .toolbar-account {
   align-items: center;
   gap: 0;
 }
+body.viewer-active #toolbar-viewer {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
 .toolbar-viewer-spacer {
   flex: 1 1 64px;
   min-width: 28px;
+}
+body.viewer-active .toolbar-viewer-spacer {
+  display: none;
+}
+#toolbar-viewer .toolbar-group--viewer-left,
+#toolbar-viewer .toolbar-group--viewer-middle {
+  flex-wrap: wrap;
+}
+#toolbar-viewer .toolbar-group--viewer-right {
+  justify-self: end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+body.viewer-active #toolbar .sep {
+  align-self: center;
+}
+@media (max-width: 1500px) {
+  body.viewer-active #toolbar-viewer {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  body.viewer-active #toolbar-viewer .toolbar-group--viewer-right {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    justify-content: flex-end;
+  }
+}
+@media (max-width: 1100px) {
+  body.viewer-active #toolbar-viewer {
+    grid-template-columns: 1fr;
+  }
+  body.viewer-active #toolbar-viewer .toolbar-group--viewer-right {
+    justify-self: start;
+    justify-content: flex-start;
+  }
 }
 #toolbar-viewer .tb-label {
   font-size: 10px;
