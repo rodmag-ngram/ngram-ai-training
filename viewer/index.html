@@ -1874,7 +1874,11 @@ body.viewer-active .toolbar-account {
 
         <div class="rp-card">
           <h3 id="saved-annotations-title">Saved annotations (0)</h3>
-          <button class="rp-secondary-btn" id="export-saved-annotations">↓ Export JSON</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="rp-save-btn" id="save-review-platform">Save review</button>
+            <button class="rp-secondary-btn" id="export-saved-annotations">↓ Export JSON</button>
+          </div>
+          <div id="review-save-status" style="margin-top:10px;font-size:12px;color:var(--text-2);"></div>
           <div class="saved-list" id="saved-annotations-list" style="margin-top:14px;"></div>
         </div>
 
@@ -2526,6 +2530,163 @@ function getExamAgreementValue(aiReviewLabel, consensusResult) {
   if (!aiReviewLabel) return 'pending';
   return aiReviewLabel === consensusResult.label ? 'Match' : 'Mismatch';
 }
+function getSelectedExamRow() {
+  if (!selectedExamId) return null;
+  return supabaseExamRows.find(row => (row.exam_code || row.source_file_name || row.id) === selectedExamId) || null;
+}
+
+function getCurrentReviewerFolder() {
+  return String(currentProfile?.id || currentSession?.user?.id || 'reviewer').trim();
+}
+
+function getSavedReviewStatusEl() {
+  return document.getElementById('review-save-status');
+}
+
+function setReviewSaveStatus(message, isError = false) {
+  const el = getSavedReviewStatusEl();
+  if (!el) return;
+  el.textContent = message || '';
+  el.style.color = isError ? '#C64B38' : 'var(--text-2)';
+}
+
+function computeReviewFinalLabel() {
+  const counts = {};
+  for (const ann of manualAnnotations) {
+    const label = ann?.label;
+    if (!label || label === '—') continue;
+    counts[label] = (counts[label] || 0) + 1;
+  }
+  const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return best ? best[0] : null;
+}
+
+function buildCurrentReviewPayload(status = 'completed') {
+  const examCode = selectedExamId || currentFile?.name || null;
+  const finalLabel = computeReviewFinalLabel();
+  return {
+    exam_id: examCode,
+    exported: new Date().toISOString(),
+    reviewer_id: currentProfile?.id || null,
+    reviewer_email: currentProfile?.email || currentSession?.user?.email || null,
+    review_status: status,
+    final_label: finalLabel,
+    dominant_label: finalLabel,
+    observer_agreement: {
+      level: examReview.observerAgreementLevel,
+      comment: examReview.observerComment,
+    },
+    exam_review: {
+      overall_grade: examReview.overallGrade,
+      comment: examReview.overallComment,
+    },
+    annotations: manualAnnotations.map(ann => ({ ...ann })),
+  };
+}
+
+function hydrateReviewStateFromExisting(review) {
+  const payload = review?.exported_payload || {};
+  const persistedAnnotations = Array.isArray(payload.annotations) ? payload.annotations : [];
+  manualAnnotations = persistedAnnotations.map((ann, index) => ({
+    id: ann.id || `ann_saved_${index}_${Math.random().toString(36).slice(2, 7)}`,
+    t0: Number(ann.t0 ?? ann.t0_seconds ?? 0),
+    t1: Number(ann.t1 ?? ann.t1_seconds ?? 0),
+    label: ann.label || ann.primary_label || annotationType,
+    occurrenceType: ann.occurrenceType || ann.occurrence_type || '—',
+    modelMarked: Array.isArray(ann.modelMarked) ? ann.modelMarked : (Array.isArray(ann.model_marked) ? ann.model_marked : []),
+    youThink: Array.isArray(ann.youThink) ? ann.youThink : (Array.isArray(ann.clinician_marked) ? ann.clinician_marked : []),
+    lateralized: ann.lateralized || ann.lateralization || '',
+    modelGrade: ann.modelGrade || ann.model_grade || '-',
+    comment: ann.comment || '',
+  }));
+  examReview = {
+    observerAgreementLevel: review?.observer_agreement_level || payload?.observer_agreement?.level || '—',
+    observerComment: review?.observer_comment || payload?.observer_agreement?.comment || '',
+    overallGrade: String(review?.overall_model_grade ?? payload?.exam_review?.overall_grade ?? '-'),
+    overallComment: review?.overall_comment || payload?.exam_review?.comment || '',
+  };
+  selectedAnnotationId = null;
+  currentWindowReview = null;
+}
+
+function applyPersistedReviewForSelectedExam() {
+  const examRow = getSelectedExamRow();
+  if (!examRow || !currentProfile?.id) return;
+  const review = (examRow.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile.id);
+  if (review) {
+    hydrateReviewStateFromExisting(review);
+  }
+}
+
+async function persistCurrentReview(status = 'completed', options = {}) {
+  const { silent = false } = options;
+  if (!currentSession || !currentProfile?.id || !selectedExamId) return null;
+  const examRow = getSelectedExamRow();
+  if (!examRow) throw new Error('Could not find the selected exam in the platform list.');
+
+  const examCode = examRow.exam_code || examRow.source_file_name || selectedExamId;
+  const payload = buildCurrentReviewPayload(status);
+  const storagePath = `reviews/${getCurrentReviewerFolder()}/${examCode}.json`;
+  payload.storage_path = `${VIEWER_PAYLOAD_BUCKET}/${storagePath}`;
+
+  setReviewSaveStatus(silent ? 'Saving draft…' : 'Saving review…');
+
+  const reviewBlob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const { error: uploadError } = await supabaseClient.storage
+    .from(VIEWER_PAYLOAD_BUCKET)
+    .upload(storagePath, reviewBlob, { contentType: 'application/json', upsert: true });
+  if (uploadError) throw new Error(`Could not upload reviewer JSON: ${uploadError.message}`);
+
+  const existingReview = (examRow.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile.id) || null;
+  const reviewRecord = {
+    exam_id: examRow.id,
+    reviewer_id: currentProfile.id,
+    review_status: status,
+    observer_agreement_level: examReview.observerAgreementLevel,
+    observer_comment: examReview.observerComment,
+    overall_model_grade: examReview.overallGrade === '-' ? null : Number(examReview.overallGrade),
+    overall_comment: examReview.overallComment,
+    exported_payload: payload,
+    completed_at: status === 'completed' ? new Date().toISOString() : null,
+  };
+
+  let reviewId = existingReview?.id || null;
+  if (reviewId) {
+    const { error } = await supabaseClient.from('exam_human_reviews').update(reviewRecord).eq('id', reviewId);
+    if (error) throw new Error(`Could not update review: ${error.message}`);
+  } else {
+    const { data, error } = await supabaseClient.from('exam_human_reviews').insert(reviewRecord).select('id').single();
+    if (error) throw new Error(`Could not create review: ${error.message}`);
+    reviewId = data.id;
+  }
+
+  const { error: deleteError } = await supabaseClient.from('review_annotations').delete().eq('review_id', reviewId);
+  if (deleteError) throw new Error(`Could not refresh annotations: ${deleteError.message}`);
+
+  if (manualAnnotations.length) {
+    const rows = manualAnnotations.map(ann => ({
+      review_id: reviewId,
+      exam_id: examRow.id,
+      t0_seconds: ann.t0,
+      t1_seconds: ann.t1,
+      primary_label: ann.label,
+      occurrence_type: ann.occurrenceType === '—' ? null : ann.occurrenceType,
+      model_marked: Array.isArray(ann.modelMarked) ? ann.modelMarked : [],
+      clinician_marked: Array.isArray(ann.youThink) ? ann.youThink : [],
+      lateralization: ann.lateralized || null,
+      model_grade: ann.modelGrade === '-' ? null : Number(ann.modelGrade),
+      comment: ann.comment || null,
+      extra_payload: { id: ann.id },
+    }));
+    const { error: insertError } = await supabaseClient.from('review_annotations').insert(rows);
+    if (insertError) throw new Error(`Could not save annotations: ${insertError.message}`);
+  }
+
+  await loadSupabaseExams();
+  setReviewSaveStatus(silent ? 'Draft saved.' : 'Review saved successfully.');
+  return true;
+}
+
 
 function buildExamListRowModel(row) {
   const examCode = row.exam_code || row.source_file_name || '—';
@@ -2997,7 +3158,7 @@ async function loadSupabaseExams() {
 
   const { data: humanRows, error: humanError } = await supabaseClient
     .from('exam_human_reviews')
-    .select('exam_id, reviewer_id, review_status, exported_payload');
+    .select('id, exam_id, reviewer_id, review_status, observer_agreement_level, observer_comment, overall_model_grade, overall_comment, exported_payload, completed_at');
   if (humanError) throw new Error(`exam_human_reviews: ${humanError.message}`);
 
   const { data: profileRows, error: profileError } = await supabaseClient
@@ -3514,7 +3675,8 @@ async function loadExamFromApi() {
 function finishLoading() {
   document.getElementById('progress-bar').style.width = '100%';
   applyDefaultViewerPreset();
-  currentWindowReview = makeWindowReview();
+  applyPersistedReviewForSelectedExam();
+  if (!currentWindowReview) currentWindowReview = makeWindowReview();
   buildTracks();
   buildViewer();
   updateAnnotationControls();
@@ -4585,7 +4747,7 @@ document.getElementById('btn-delete-annotation').addEventListener('click', () =>
   buildViewer();
   draw();
 });
-document.getElementById('save-window-annotation').addEventListener('click', () => {
+document.getElementById('save-window-annotation').addEventListener('click', async () => {
   let ann = selectedAnnotation();
   if (!ann) {
     if (!currentWindowReview) currentWindowReview = makeWindowReview();
@@ -4602,7 +4764,22 @@ document.getElementById('save-window-annotation').addEventListener('click', () =
   buildViewer();
   updateAnnotationControls();
   draw();
+  try {
+    await persistCurrentReview('in_progress', { silent: true });
+  } catch (error) {
+    console.error(error);
+    setReviewSaveStatus(error.message || 'Could not save draft.', true);
+  }
 });
+document.getElementById('save-review-platform').addEventListener('click', async () => {
+  try {
+    await persistCurrentReview('completed');
+  } catch (error) {
+    console.error(error);
+    setReviewSaveStatus(error.message || 'Could not save review.', true);
+  }
+});
+
 document.getElementById('export-saved-annotations').addEventListener('click', () => {
   const payload = {
     exam_id: selectedExamId || currentFile?.name || null,
