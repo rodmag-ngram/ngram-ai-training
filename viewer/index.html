@@ -1684,14 +1684,14 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
       </select>
       <span class="tb-label">High</span>
       <select class="tb-select" id="sel-high" style="width:92px">
-        <option value="-1">None</option>
+        <option value="-1" selected>None</option>
         <option value="4">~4 Hz (δ)</option>
         <option value="8">~8 Hz (δ+θ)</option>
         <option value="15">15 Hz</option>
         <option value="30">30 Hz</option>
         <option value="50">50 Hz</option>
         <option value="70">70 Hz</option>
-        <option value="100" selected>100 Hz</option>
+        <option value="100">100 Hz</option>
       </select>
       <span class="tb-label">Montage</span>
       <select class="tb-select" id="sel-montage" style="width:96px">
@@ -2140,7 +2140,7 @@ let windowSize = 20;
 let startTime = 0;
 let scale = 70;
 let lowCutHz = 0;
-let highCutHz = 100;
+let highCutHz = -1;
 let montageMode = 'referential';
 let visualGain = 1.0;
 let cmpVisible = false;
@@ -2179,16 +2179,26 @@ let currentAppState = 'auth';
 let pendingUiRestoreState = null;
 const UI_STATE_STORAGE_KEY = 'ngram_ai_training_ui_state_v1';
 
+function resetReviewDraftState() {
+  manualAnnotations = [];
+  selectedAnnotationId = null;
+  currentWindowReview = null;
+  dragAnnotation = null;
+  annotationDragClientX = null;
+  examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
+  setReviewSaveStatus('');
+}
+
 function applyDefaultViewerPreset() {
   scale = 70;
   lowCutHz = 0;
-  highCutHz = 100;
+  highCutHz = -1;
   montageMode = 'referential';
   windowSize = 10;
 
   document.getElementById('sel-scale').value = '70';
   document.getElementById('sel-low').value = '0';
-  document.getElementById('sel-high').value = '100';
+  document.getElementById('sel-high').value = '-1';
   document.getElementById('sel-montage').value = 'referential';
   document.getElementById('sel-window').value = '10';
   setInteractionMode('pan');
@@ -3041,6 +3051,8 @@ function applyPersistedReviewForSelectedExam() {
   const review = (examRow.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile.id);
   if (review) {
     hydrateReviewStateFromExisting(review);
+  } else {
+    resetReviewDraftState();
   }
 }
 
@@ -3880,7 +3892,7 @@ function applyRestoredViewerState(saved) {
   if (!saved || !edfData) return;
   scale = Number(saved.scale) || 200;
   lowCutHz = Number(saved.lowCutHz ?? 0);
-  highCutHz = Number(saved.highCutHz ?? 100);
+  highCutHz = Number(saved.highCutHz ?? -1);
   montageMode = saved.montageMode || 'referential';
   windowSize = Number(saved.windowSize) || 10;
   cmpVisible = Boolean(saved.cmpVisible);
@@ -3923,8 +3935,7 @@ function resetToUpload() {
   document.getElementById('time-lbl').style.display = 'none';
   document.getElementById('toolbar-account')?.classList.add('visible');
   loadedFromApi = false;
-  examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
-  currentWindowReview = null;
+  resetReviewDraftState();
   applyDefaultViewerPreset();
   updateViewerExamChrome();
 }
@@ -3935,8 +3946,7 @@ function returnToExamList() {
   document.getElementById('time-lbl').style.display = 'none';
   document.getElementById('toolbar-account')?.classList.add('visible');
   loadedFromApi = false;
-  selectedAnnotationId = null;
-  currentWindowReview = null;
+  resetReviewDraftState();
   applyDefaultViewerPreset();
   updateViewerExamChrome();
   showExamList();
@@ -3945,8 +3955,7 @@ function returnToExamList() {
 // ── Loading simulation + EDF parse ────────────────────────────────
 function startAnalysis() {
   if (!currentFile && !selectedExamId) return;
-  manualAnnotations = [];
-  selectedAnnotationId = null;
+  resetReviewDraftState();
   baseTracks = {};
   showState('loading');
   document.getElementById('toolbar-upload').style.display = 'none';
@@ -4695,6 +4704,16 @@ function drawPolyline(ctx, points) {
   ctx.stroke();
 }
 
+function drawPolylineRaw(ctx, points) {
+  if (points.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.stroke();
+}
+
 function resize() {
   if (!edfData) return;
   initViewer();
@@ -4878,9 +4897,9 @@ function draw() {
     }
     ctx.strokeStyle = traceColor(channel.baseIndex ?? ci);
     ctx.globalAlpha = 0.97;
-    ctx.lineWidth = channel.name.startsWith('CA') ? 1.35 : 1.05;
+    ctx.lineWidth = channel.name.startsWith('CA') ? 1.05 : 0.9;
     ctx.setLineDash([]);
-    drawPolyline(ctx, points);
+    drawPolylineRaw(ctx, points);
     ctx.globalAlpha = 1;
 
     // channel label
