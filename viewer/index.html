@@ -4656,12 +4656,25 @@ window.addEventListener('scroll', hideFloatingTooltip, true);
 
 async function loadExamManifest() {
   try {
+    const requestHeaders = {};
+    if (supabaseClient?.auth?.getSession) {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session?.access_token) {
+        requestHeaders.Authorization = `Bearer ${session.access_token}`;
+      }
+    }
+
     const [manifestRes, legacyRes] = await Promise.all([
-      fetch('/api/exams'),
+      fetch('/api/exams', { headers: requestHeaders }),
       fetch('/legacy_final_reviews.json').catch(() => null),
     ]);
-    const data = await manifestRes.json();
-    examManifest = data.exams || [];
+    let data = {};
+    try {
+      data = await manifestRes.json();
+    } catch {
+      data = {};
+    }
+    examManifest = Array.isArray(data.exams) ? data.exams : [];
     if (legacyRes && legacyRes.ok) {
       legacyExamReviewSummary = await legacyRes.json();
     }

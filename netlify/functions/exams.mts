@@ -67,11 +67,12 @@ function buildManifestExam(row: ExamRow, aiReview: AiReviewRow | undefined, lega
   };
 }
 
-export default async () => {
+export default async (request: Request) => {
+  const forwardedAuthHeader = request.headers.get("authorization");
   const [legacySummaries, examsRows, aiRows] = await Promise.all([
     loadLegacySummaries(),
-    supabaseRest("exams?select=id,exam_code,source_file_name,patient_code,duration_seconds,metadata&order=uploaded_at.desc"),
-    supabaseRest("exam_ai_reviews?select=exam_id,review_status,summary"),
+    supabaseRest("exams?select=id,exam_code,source_file_name,patient_code,duration_seconds,metadata&order=uploaded_at.desc", forwardedAuthHeader),
+    supabaseRest("exam_ai_reviews?select=exam_id,review_status,summary", forwardedAuthHeader),
   ]);
 
   const aiByExamId = new Map<string, AiReviewRow>((aiRows as AiReviewRow[]).map(row => [row.exam_id, row]));
