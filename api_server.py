@@ -119,14 +119,22 @@ def exam_manifest():
         if legacy_consensus_counts:
             legacy_consensus_label, legacy_consensus_count = legacy_consensus_counts.most_common(1)[0]
         has_consensus = legacy_consensus_count >= 2
-        accuracy_vs_consensus = (
-            sum(int(ai_label == row["label"]) for ai_label, row in zip(ai_labels, rows)) / len(rows)
-            if rows else None
-        )
         per_label_stats = {}
         matched_window_count = 0
-        for ai_label, row in zip(ai_labels, rows):
-            consensus_label = row["label"]
+        consensus_window_count = 0
+        for ai_label, meta_row in zip(ai_labels, meta_rows):
+            reviewer_counts = Counter(
+                str(meta_row["labels_per_rater"].get(rater, "normal"))
+                for rater in RATERS
+            )
+            consensus_label = None
+            consensus_count = 0
+            if reviewer_counts:
+                consensus_label, consensus_count = reviewer_counts.most_common(1)[0]
+            if not consensus_label or consensus_count < 2:
+                continue
+
+            consensus_window_count += 1
             label_stats = per_label_stats.setdefault(consensus_label, {
                 "consensus_window_count": 0,
                 "matched_window_count": 0,
@@ -135,7 +143,10 @@ def exam_manifest():
             if ai_label == consensus_label:
                 label_stats["matched_window_count"] += 1
                 matched_window_count += 1
-        consensus_window_count = len(rows)
+        accuracy_vs_consensus = (
+            matched_window_count / consensus_window_count
+            if consensus_window_count else None
+        )
         manifest.append({
             "exam_id": exam_id,
             "patient_id": rows[0]["patient_id"],
@@ -147,7 +158,7 @@ def exam_manifest():
             "consensus_label_counts": dict(labels),
             "ai_dominant_label": ai_counts.most_common(1)[0][0] if ai_counts else None,
             "ai_label_counts": dict(ai_counts),
-            "accuracy_vs_consensus": round(float(accuracy_vs_consensus), 4) if (accuracy_vs_consensus is not None and has_consensus) else None,
+            "accuracy_vs_consensus": round(float(accuracy_vs_consensus), 4) if accuracy_vs_consensus is not None else None,
             "legacy_final_by_rater": legacy_final_by_rater,
             "consensus_available": has_consensus,
             "consensus_dominant_label_final": legacy_consensus_label if has_consensus else None,

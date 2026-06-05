@@ -2464,6 +2464,49 @@ function getReviewAnnotations(review) {
   return Array.isArray(annotations) ? annotations : [];
 }
 
+function normalizeLegacyReviewerKey(name) {
+  return String(name || '').trim().toLowerCase();
+}
+
+function buildConsensusReviewerSources(row) {
+  const reviewerSources = [];
+  const selectedRow = row || getSelectedExamRow();
+  const legacyTracks = baseTracks && typeof baseTracks === 'object' ? baseTracks : {};
+
+  Object.entries(legacyTracks).forEach(([name, segs]) => {
+    if (String(name).toLowerCase() === 'ai' || String(name).toLowerCase() === 'consensus') return;
+    if (!Array.isArray(segs) || !segs.length) return;
+    reviewerSources.push({
+      key: normalizeLegacyReviewerKey(name),
+      segments: segs
+        .map(seg => ({
+          t0: Number(seg?.t0 ?? 0),
+          t1: Number(seg?.t1 ?? 0),
+          label: String(seg?.label || 'normal'),
+        }))
+        .filter(seg => Number.isFinite(seg.t0) && Number.isFinite(seg.t1) && seg.t1 > seg.t0),
+    });
+  });
+
+  getCompletedHumanReviews(selectedRow).forEach(review => {
+    const key = getReviewerIdentityKey(review);
+    const annotations = getReviewAnnotations(review)
+      .map(annotation => ({
+        t0: Number(annotation?.t0 ?? annotation?.t0_seconds ?? 0),
+        t1: Number(annotation?.t1 ?? annotation?.t1_seconds ?? 0),
+        label: String(annotation?.label || annotation?.primary_label || 'normal'),
+      }))
+      .filter(seg => Number.isFinite(seg.t0) && Number.isFinite(seg.t1) && seg.t1 > seg.t0);
+    if (annotations.length) {
+      const existingIndex = reviewerSources.findIndex(source => source.key === key);
+      if (existingIndex >= 0) reviewerSources.splice(existingIndex, 1);
+      reviewerSources.push({ key, segments: annotations });
+    }
+  });
+
+  return reviewerSources;
+}
+
 function getReviewWindowLabel(review, t0, t1) {
   const annotations = getReviewAnnotations(review);
   let best = null;
@@ -2476,6 +2519,23 @@ function getReviewWindowLabel(review, t0, t1) {
       best = {
         overlap,
         label: annotation?.label || annotation?.primary_label || 'normal',
+      };
+    }
+  });
+  return best?.label || 'normal';
+}
+
+function getSegmentsWindowLabel(segments, t0, t1) {
+  let best = null;
+  (Array.isArray(segments) ? segments : []).forEach(segment => {
+    const segT0 = Number(segment?.t0 ?? 0);
+    const segT1 = Number(segment?.t1 ?? 0);
+    const overlap = Math.min(t1, segT1) - Math.max(t0, segT0);
+    if (overlap <= 0) return;
+    if (!best || overlap > best.overlap) {
+      best = {
+        overlap,
+        label: segment?.label || 'normal',
       };
     }
   });
@@ -2505,8 +2565,8 @@ function buildDynamicConsensusState(row) {
   if (!row || !Array.isArray(predictions) || !predictions.length) {
     return { accuracy: null, consensusTrack: [], consensusWindowCount: 0, matchedWindowCount: 0, perLabelStats: {} };
   }
-  const completedReviews = getCompletedHumanReviews(row);
-  if (completedReviews.length < 2) {
+  const reviewerSources = buildConsensusReviewerSources(row);
+  if (reviewerSources.length < 2) {
     return { accuracy: null, consensusTrack: [], consensusWindowCount: 0, matchedWindowCount: 0, perLabelStats: {} };
   }
 
@@ -2517,8 +2577,8 @@ function buildDynamicConsensusState(row) {
 
   predictions.forEach(windowPrediction => {
     const counts = {};
-    completedReviews.forEach(review => {
-      const label = getReviewWindowLabel(review, windowPrediction.t0, windowPrediction.t1);
+    reviewerSources.forEach(source => {
+      const label = getSegmentsWindowLabel(source.segments, windowPrediction.t0, windowPrediction.t1);
       counts[label] = (counts[label] || 0) + 1;
     });
     const [label, count] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
