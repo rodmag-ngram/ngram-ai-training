@@ -1977,6 +1977,7 @@ let loadedFromApi = false;
 let examManifest = [];
 let legacyExamReviewSummary = {};
 let supabaseExamRows = [];
+const VIEWER_PAYLOAD_BUCKET = 'eeg-viewer-payloads';
 let examsPanelMode = 'list';
 let examListSort = { key: 'exam_code', direction: 'asc' };
 let examColumnWidths = {
@@ -2972,10 +2973,16 @@ async function loadSupabaseExams() {
   const sub = document.getElementById('exam-list-sub');
   if (sub) sub.textContent = 'Loading exams from Supabase…';
 
-  const { data: examsRows, error: examsError } = await supabaseClient
-    .from('exams')
-    .select('id, exam_code, source_file_name, patient_code, duration_seconds, status, uploaded_at, metadata')
-    .order('uploaded_at', { ascending: false });
+  const [
+    { data: examsRows, error: examsError },
+    availablePayloads,
+  ] = await Promise.all([
+    supabaseClient
+      .from('exams')
+      .select('id, exam_code, source_file_name, patient_code, duration_seconds, status, uploaded_at, metadata')
+      .order('uploaded_at', { ascending: false }),
+    listAvailableViewerPayloads(),
+  ]);
   if (examsError) throw new Error(`exams: ${examsError.message}`);
 
   const { data: aiRows, error: aiError } = await supabaseClient
@@ -3022,15 +3029,56 @@ async function loadSupabaseExams() {
     humanByExam.set(row.exam_id, list);
   });
 
-  supabaseExamRows = (examsRows || []).map(row => ({
-    ...row,
-    exam_ai_reviews: aiByExam.get(row.id) ? [aiByExam.get(row.id)] : [],
-    exam_assignments: assignmentsByExam.get(row.id) || [],
-    exam_human_reviews: humanByExam.get(row.id) || []
-  }));
+  supabaseExamRows = (examsRows || [])
+    .filter(row => {
+      const payloadPath = normalizeViewerPayloadStoragePath(row?.metadata?.viewer_payload_storage_path);
+      return payloadPath && availablePayloads.has(payloadPath);
+    })
+    .map(row => ({
+      ...row,
+      exam_ai_reviews: aiByExam.get(row.id) ? [aiByExam.get(row.id)] : [],
+      exam_assignments: assignmentsByExam.get(row.id) || [],
+      exam_human_reviews: humanByExam.get(row.id) || []
+    }));
 
   renderExamList();
   updateExamsPanelMode();
+}
+
+
+function normalizeViewerPayloadStoragePath(path) {
+  if (!path || typeof path !== 'string') return null;
+  const cleaned = path.replace(/^\/+/, '');
+  if (!cleaned) return null;
+  if (cleaned.startsWith(`${VIEWER_PAYLOAD_BUCKET}/`)) return cleaned;
+  return `${VIEWER_PAYLOAD_BUCKET}/${cleaned}`;
+}
+
+async function listAvailableViewerPayloads() {
+  const prefix = 'exams/payloads';
+  const available = new Set();
+  let offset = 0;
+  const limit = 1000;
+
+  while (true) {
+    const { data, error } = await supabaseClient.storage
+      .from(VIEWER_PAYLOAD_BUCKET)
+      .list(prefix, { limit, offset, sortBy: { column: 'name', order: 'asc' } });
+
+    if (error) throw new Error(`storage payloads: ${error.message}`);
+
+    const rows = data || [];
+    rows.forEach(item => {
+      if (item?.name) {
+        available.add(`${VIEWER_PAYLOAD_BUCKET}/${prefix}/${item.name}`);
+      }
+    });
+
+    if (rows.length < limit) break;
+    offset += rows.length;
+  }
+
+  return available;
 }
 
 function showExamList() {
