@@ -1795,6 +1795,7 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
               <col id="col-exam">
               <col id="col-patient">
               <col id="col-duration">
+              <col id="col-exam_status">
               <col id="col-reviewed_by">
               <col id="col-my_review">
               <col id="col-window_agreement">
@@ -1804,6 +1805,7 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
                 <th class="sortable" data-sort-key="exam_code"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Exam</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="exam_code"></span></div></th>
                 <th class="sortable" data-sort-key="patient_code"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Patient</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="patient_code"></span></div></th>
                 <th class="sortable" data-sort-key="duration_seconds"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Duration</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="duration_seconds"></span></div></th>
+                <th class="sortable" data-sort-key="exam_status"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Exam status</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="exam_status"></span></div></th>
                 <th class="sortable" data-sort-key="reviewed_by"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Reviewed by</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="reviewed_by"></span></div></th>
                 <th class="sortable" data-sort-key="my_review"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">My status</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="my_review"></span></div></th>
                 <th class="sortable" data-sort-key="window_agreement"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Window agreement</span></span><span class="exam-th-meta"><span class="th-help" tabindex="0" data-tip="Proportion of 10-second windows in this exam where the AI label matches the consensus label. This is an exam-level agreement measure, not the global F1 benchmark of the model.">i</span><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="window_agreement"></span></div></th>
@@ -1877,7 +1879,7 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
         results with clinician annotations.
       </div>
 
-      <select class="tb-select" id="upload-exam-select" style="width:100%;max-width:420px;height:42px;border-radius:14px;background-color:#fff;">
+      <select class="tb-select" id="upload-exam-select" style="display:none;width:100%;max-width:420px;height:42px;border-radius:14px;background-color:#fff;">
         <option value="">Or choose a saved exam…</option>
       </select>
 
@@ -1887,13 +1889,18 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
         <button class="file-pill-clear" onclick="clearFile(event)" title="Remover">✕</button>
       </div>
 
-      <button class="btn-primary" id="btn-analyze" disabled onclick="startAnalysis()">
+      <button class="btn-primary" id="btn-upload-file" type="button" onclick="document.getElementById('file-input').click()">
         <svg viewBox="0 0 20 20" fill="none">
           <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/>
           <path d="M7 10l2.5 2.5L14 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Analisar
+        Attach EDF
       </button>
+      <button class="btn-primary" id="btn-analyze" disabled onclick="startAnalysis()" style="display:none;">
+        Analyze
+      </button>
+
+      <div id="upload-feedback" style="min-height:18px;font-size:13px;color:var(--text-2);"></div>
 
       <div class="upload-hint">.edf · EDF+ · up to ~2 GB</div>
     </div>
@@ -2182,6 +2189,7 @@ let examColumnWidths = {
   exam_code: 220,
   patient_code: 205,
   duration_seconds: 120,
+  exam_status: 140,
   reviewed_by: 260,
   my_review: 130,
   window_agreement: 140,
@@ -2259,13 +2267,25 @@ const fileInput = document.getElementById('file-input');
 const filePill  = document.getElementById('file-pill');
 const pillName  = document.getElementById('file-pill-name');
 const btnAnalyze = document.getElementById('btn-analyze');
+const uploadFeedback = document.getElementById('upload-feedback');
 const selExamToolbar = document.getElementById('sel-exam');
 const selExamUpload = document.getElementById('upload-exam-select');
 const authEmailInput = document.getElementById('auth-email');
 const authPasswordInput = document.getElementById('auth-password');
+let uploadExamInFlight = false;
+const RAW_EDF_BUCKET = 'eeg-raw-edf';
 
 fileInput.addEventListener('change', e => {
-  if (e.target.files[0]) setFile(e.target.files[0]);
+  if (e.target.files[0]) {
+    if (currentAppState === 'upload' && canUploadExams()) {
+      queueUploadedExam(e.target.files[0]).catch(error => {
+        console.error(error);
+        setUploadFeedback(error.message || 'Could not queue this EDF.', true);
+      });
+      return;
+    }
+    setFile(e.target.files[0]);
+  }
 });
 
 dropZone.addEventListener('dragover', e => {
@@ -2277,7 +2297,15 @@ dropZone.addEventListener('drop', e => {
   e.preventDefault();
   dropZone.classList.remove('drag-over');
   const f = e.dataTransfer.files[0];
-  if (f && f.name.toLowerCase().endsWith('.edf')) setFile(f);
+  if (!f || !f.name.toLowerCase().endsWith('.edf')) return;
+  if (currentAppState === 'upload' && canUploadExams()) {
+    queueUploadedExam(f).catch(error => {
+      console.error(error);
+      setUploadFeedback(error.message || 'Could not queue this EDF.', true);
+    });
+    return;
+  }
+  setFile(f);
 });
 dropZone.addEventListener('click', e => {
   if (e.target.closest('button, select, option, input, .tb-select, .btn-primary, .file-pill')) return;
@@ -2393,6 +2421,99 @@ document.getElementById('btn-ai-download-legacy')?.addEventListener('click', () 
   a.click();
   URL.revokeObjectURL(url);
 });
+
+function setUploadFeedback(message = '', isError = false) {
+  if (!uploadFeedback) return;
+  uploadFeedback.textContent = message;
+  uploadFeedback.style.color = isError ? 'var(--red)' : 'var(--text-2)';
+}
+
+function sanitizeExamCodePart(value) {
+  return String(value || '')
+    .replace(/\.edf$/i, '')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-')
+    .toUpperCase()
+    .slice(0, 40);
+}
+
+function buildUploadedExamCode(fileName) {
+  const stem = sanitizeExamCodePart(fileName) || 'UPLOAD';
+  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
+  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${stem}-${stamp}-${random}`;
+}
+
+async function queueUploadedExam(file) {
+  if (!canUploadExams()) return;
+  if (!file || !file.name?.toLowerCase().endsWith('.edf')) {
+    throw new Error('Please choose a valid .edf file.');
+  }
+  if (uploadExamInFlight) return;
+  uploadExamInFlight = true;
+  setUploadFeedback('Uploading EDF and creating exam…');
+  btnAnalyze.disabled = true;
+  const uploadBtn = document.getElementById('btn-upload-file');
+  if (uploadBtn) uploadBtn.setAttribute('disabled', 'disabled');
+
+  const examCode = buildUploadedExamCode(file.name);
+  const patientCode = sanitizeExamCodePart(file.name) || examCode;
+  const storagePath = `uploads/${examCode}/source.edf`;
+
+  try {
+    const { error: uploadError } = await supabaseClient.storage
+      .from(RAW_EDF_BUCKET)
+      .upload(storagePath, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+    if (uploadError) throw new Error(`Could not upload EDF: ${uploadError.message}`);
+
+    const { data: examRow, error: examError } = await supabaseClient
+      .from('exams')
+      .insert({
+        exam_code: examCode,
+        source_file_name: file.name,
+        edf_storage_path: storagePath,
+        status: 'processing_ai',
+        patient_code: patientCode,
+        uploaded_by: currentProfile?.id || null,
+        metadata: {
+          upload_origin: 'web',
+          upload_received_at: new Date().toISOString(),
+          ingest_state: 'queued',
+        },
+      })
+      .select('id')
+      .single();
+    if (examError) throw new Error(`Could not create exam row: ${examError.message}`);
+
+    const { error: aiReviewError } = await supabaseClient
+      .from('exam_ai_reviews')
+      .insert({
+        exam_id: examRow.id,
+        model_name: 'LightGBM',
+        model_version: 'v1',
+        pipeline_version: 'chunked-upload',
+        review_status: 'pending',
+        summary: {
+          ingest_state: 'queued',
+          raw_edf_storage_path: storagePath,
+        },
+      });
+    if (aiReviewError) throw new Error(`Could not create AI review row: ${aiReviewError.message}`);
+
+    setUploadFeedback('Upload received. Returning to the worklist…');
+    fileInput.value = '';
+    filePill.classList.remove('visible');
+    pillName.textContent = '—';
+    currentFile = null;
+    await loadSupabaseExams();
+    showExamList();
+  } finally {
+    uploadExamInFlight = false;
+    if (uploadBtn) uploadBtn.removeAttribute('disabled');
+  }
+}
+
 function setFile(f) {
   currentFile = f;
   selectedExamId = '';
@@ -3226,6 +3347,8 @@ function buildExamListRowModel(row) {
   const legacySummary = getLegacyExamSummary(examCode);
   const myHumanReview = (row.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile?.id);
   const reviewedBy = formatReviewerList(row.exam_assignments || [], row.metadata?.reviewed_by || []);
+  const examStatus = String(row.status || '').toLowerCase() || 'uploaded';
+  const payloadPath = getViewerPayloadRelativePath(row?.metadata?.viewer_payload_storage_path);
   const metrics = row.window_metrics || manifestExam?.window_metrics || {};
   const hydrationPending = row._windowMetricsHydrationPending === true;
   const hydrationComplete = row._windowMetricsHydrationComplete === true;
@@ -3243,7 +3366,9 @@ function buildExamListRowModel(row) {
   const matchedWindowCount = Number(metrics.matched_window_count ?? row._matchedWindowCount ?? 0);
   const accuracyRaw = fallbackAccuracyRaw;
   let accuracyValue = 'Calculating…';
-  if (consensusWindowCount > 0) {
+  if (examStatus !== 'ready' || !payloadPath) {
+    accuracyValue = 'pending';
+  } else if (consensusWindowCount > 0) {
     accuracyValue = formatAccuracyValue(accuracyRaw);
   } else if (hydrationComplete || (!hydrationPending && hasConsensusFallback === false)) {
     accuracyValue = 'No consensus windows';
@@ -3254,11 +3379,13 @@ function buildExamListRowModel(row) {
     examCode,
     patientCode: row.patient_code || '—',
     durationSeconds: Number(row.duration_seconds || manifestExam?.duration_s || 0),
+    examStatus,
     reviewedBy,
     myReviewStatus: getMyReviewStatus(myHumanReview),
     consensusWindowCount,
     matchedWindowCount,
     accuracyValue,
+    isOpenable: examStatus === 'ready' && Boolean(payloadPath),
   };
 }
 
@@ -3275,6 +3402,17 @@ function getExamSortValue(item, key) {
       return item.patientCode || '';
     case 'duration_seconds':
       return item.durationSeconds || 0;
+    case 'exam_status':
+      return {
+        rank: getSortableStatusRank(item.examStatus || 'uploaded', {
+          uploaded: 5,
+          processing_ai: 10,
+          ready: 20,
+          archived: 30,
+          error: 40,
+        }),
+        label: item.examStatus || 'uploaded',
+      };
     case 'reviewed_by':
       return item.reviewedBy === '—' ? '' : item.reviewedBy;
     case 'my_review':
@@ -3555,19 +3693,20 @@ function renderExamList() {
   bindExamTableHeaderInteractions();
   if (!supabaseExamRows.length) {
     sub.textContent = 'No exams found in Supabase yet.';
-    body.innerHTML = `<tr><td colspan="6"><div class="empty-state">There are no exams in the database yet. You can still use the local viewer while we finish wiring the full ingestion flow.</div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="7"><div class="empty-state">There are no exams in the database yet. You can still use the local viewer while we finish wiring the full ingestion flow.</div></td></tr>`;
     return;
   }
   sub.textContent = `${supabaseExamRows.length} exam(s) available`;
   body.innerHTML = '';
   const sortedItems = sortExamListRows(supabaseExamRows.map(buildExamListRowModel));
   sortedItems.forEach(item => {
-    const { examCode, patientCode, durationSeconds, reviewedBy, myReviewStatus, accuracyValue } = item;
+    const { examCode, patientCode, durationSeconds, examStatus, reviewedBy, myReviewStatus, accuracyValue } = item;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><button type="button" class="exam-row-btn" data-exam-code="${examCode}">${examCode}</button></td>
       <td>${patientCode}</td>
       <td>${formatDurationSeconds(durationSeconds)}</td>
+      <td><span class="exam-status ${statusClass(examStatus)}">${examStatus.replace(/_/g, ' ')}</span></td>
       <td>${reviewedBy}</td>
       <td><span class="exam-status ${myReviewStatus === 'completed' ? 'status-completed' : statusClass(myReviewStatus)}">${myReviewStatus}</span></td>
       <td>${
@@ -3627,7 +3766,11 @@ async function fetchExamManifestPayload(row, examCode) {
 
 async function hydrateExamListWindowMetrics(rows) {
   const runId = ++examListMetricsHydrationRun;
-  const pendingRows = (Array.isArray(rows) ? rows : []).filter(Boolean);
+  const pendingRows = (Array.isArray(rows) ? rows : []).filter(row => {
+    if (!row) return false;
+    if (String(row.status || '').toLowerCase() !== 'ready') return false;
+    return Boolean(getViewerPayloadRelativePath(row?.metadata?.viewer_payload_storage_path));
+  });
   if (!pendingRows.length) return;
   const sub = document.getElementById('exam-list-sub');
   pendingRows.forEach(row => {
@@ -3755,12 +3898,6 @@ async function loadSupabaseExams() {
   });
 
   supabaseExamRows = (examsRows || [])
-    .filter(row => {
-      const payloadPath = normalizeViewerPayloadStoragePath(row?.metadata?.viewer_payload_storage_path);
-      if (!payloadPath) return false;
-      if (availablePayloads === null) return true;
-      return availablePayloads.has(payloadPath);
-    })
     .map(row => ({
       ...row,
       exam_ai_reviews: aiByExam.get(row.id) ? [aiByExam.get(row.id)] : [],
@@ -3812,6 +3949,12 @@ function showExamList() {
 }
 
 async function openExamFromList(examCode) {
+  const row = supabaseExamRows.find(item => (item.exam_code || item.source_file_name || item.id) === examCode) || null;
+  const payloadPath = getViewerPayloadRelativePath(row?.metadata?.viewer_payload_storage_path);
+  if (!row || row.status !== 'ready' || !payloadPath) {
+    alert('This exam is still processing and is not ready in the viewer yet.');
+    return;
+  }
   setSelectedExam(examCode);
   if (selectedExamId) {
     await startAnalysis();
@@ -3919,7 +4062,7 @@ async function handleAuthenticatedSession(session) {
     const sub = document.getElementById('exam-list-sub');
     const body = document.getElementById('exam-table-body');
     if (sub) sub.textContent = `Could not load exams from Supabase right now: ${error?.message || 'unknown error'}`;
-    if (body) body.innerHTML = `<tr><td colspan="8"><div class="empty-state">Authentication worked, but the exam list failed to load. Try the Refresh button again in a moment.</div></td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="7"><div class="empty-state">Authentication worked, but the exam list failed to load. Try the Refresh button again in a moment.</div></td></tr>`;
   }
 
   const savedState = loadPersistedUiState();
@@ -4084,9 +4227,10 @@ function openUploadExamWorkflow() {
   filePill.classList.remove('visible');
   pillName.textContent = '—';
   btnAnalyze.disabled = true;
+  setUploadFeedback('');
   updateViewerExamChrome();
   showState('upload');
-  document.getElementById('toolbar-upload').style.display = 'flex';
+  document.getElementById('toolbar-upload').style.display = 'none';
   document.getElementById('toolbar-viewer').style.display = 'none';
   document.getElementById('time-lbl').style.display = 'none';
   document.getElementById('toolbar-account')?.classList.add('visible');
