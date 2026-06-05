@@ -2425,6 +2425,107 @@ function getReviewerIdentityKey(review) {
   return review?.reviewer_id || null;
 }
 
+function getReviewerDisplayName(review) {
+  const source = review?.profiles?.full_name || review?.profiles?.email || review?.reviewer_id || 'Reviewer';
+  const first = String(source).trim().split(/\s+/)[0] || 'Reviewer';
+  return first.length > 12 ? first.slice(0, 12) : first;
+}
+
+function getCompletedHumanReviews(row) {
+  return (row?.exam_human_reviews || []).filter(review => review.review_status === 'completed');
+}
+
+function getReviewAnnotations(review) {
+  const annotations = review?.exported_payload?.annotations;
+  return Array.isArray(annotations) ? annotations : [];
+}
+
+function getReviewWindowLabel(review, t0, t1) {
+  const annotations = getReviewAnnotations(review);
+  let best = null;
+  annotations.forEach(annotation => {
+    const annT0 = Number(annotation?.t0 ?? annotation?.t0_seconds ?? 0);
+    const annT1 = Number(annotation?.t1 ?? annotation?.t1_seconds ?? 0);
+    const overlap = Math.min(t1, annT1) - Math.max(t0, annT0);
+    if (overlap <= 0) return;
+    if (!best || overlap > best.overlap) {
+      best = {
+        overlap,
+        label: annotation?.label || annotation?.primary_label || 'normal',
+      };
+    }
+  });
+  return best?.label || 'normal';
+}
+
+function buildReviewerTracks(row) {
+  const reviewerTracks = {};
+  getCompletedHumanReviews(row).forEach(review => {
+    const name = getReviewerDisplayName(review);
+    const segs = getReviewAnnotations(review)
+      .map((annotation, index) => ({
+        t0: Number(annotation?.t0 ?? annotation?.t0_seconds ?? 0),
+        t1: Number(annotation?.t1 ?? annotation?.t1_seconds ?? 0),
+        label: annotation?.label || annotation?.primary_label || 'normal',
+        id: annotation?.id || `review_${review.id}_${index}`,
+      }))
+      .filter(seg => Number.isFinite(seg.t0) && Number.isFinite(seg.t1) && seg.t1 > seg.t0)
+      .sort((a, b) => a.t0 - b.t0);
+    if (segs.length) reviewerTracks[name] = segs;
+  });
+  return reviewerTracks;
+}
+
+function buildDynamicConsensusState(row) {
+  if (!row || !Array.isArray(predictions) || !predictions.length) {
+    return { accuracy: null, consensusTrack: [] };
+  }
+  const completedReviews = getCompletedHumanReviews(row);
+  if (completedReviews.length < 2) {
+    return { accuracy: null, consensusTrack: [] };
+  }
+
+  const consensusWindows = [];
+  let matched = 0;
+  let consensusCount = 0;
+
+  predictions.forEach(windowPrediction => {
+    const counts = {};
+    completedReviews.forEach(review => {
+      const label = getReviewWindowLabel(review, windowPrediction.t0, windowPrediction.t1);
+      counts[label] = (counts[label] || 0) + 1;
+    });
+    const [label, count] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
+    if (!label || count < 2) return;
+    consensusCount += 1;
+    if (windowPrediction.label === label) matched += 1;
+    consensusWindows.push({ t0: windowPrediction.t0, t1: windowPrediction.t1, label });
+  });
+
+  const mergedConsensus = [];
+  consensusWindows.forEach(seg => {
+    const prev = mergedConsensus[mergedConsensus.length - 1];
+    if (prev && prev.label === seg.label && Math.abs(prev.t1 - seg.t0) < 1e-6) {
+      prev.t1 = seg.t1;
+    } else {
+      mergedConsensus.push({ ...seg });
+    }
+  });
+
+  return {
+    accuracy: consensusCount ? matched / consensusCount : null,
+    consensusTrack: mergedConsensus,
+  };
+}
+
+function cacheDynamicAgreementForSelectedExam() {
+  const row = getSelectedExamRow();
+  if (!row) return;
+  const state = buildDynamicConsensusState(row);
+  row._computedAccuracyVsConsensus = state.accuracy;
+  row._computedConsensusTrack = state.consensusTrack;
+}
+
 function collectReviewerFinalLabels(row, manifestExam) {
   const reviewerLabels = new Map();
   const legacy = manifestExam?.legacy_final_by_rater || getLegacyExamSummary(row.exam_code || row.source_file_name || '')?.legacy_final_by_rater || {};
@@ -2683,6 +2784,15 @@ async function persistCurrentReview(status = 'completed', options = {}) {
   }
 
   await loadSupabaseExams();
+  if (loadedFromApi && selectedExamId === examCode) {
+    applyPersistedReviewForSelectedExam();
+    cacheDynamicAgreementForSelectedExam();
+    buildViewer();
+    if (cmpVisible) drawCmp();
+    draw();
+    updatePanel();
+    renderExamList();
+  }
   setReviewSaveStatus(silent ? 'Draft saved.' : 'Review saved successfully.');
   return true;
 }
@@ -2700,7 +2810,7 @@ function buildExamListRowModel(row) {
   const consensusResult = getConsensusResult(row, manifestExam);
   const reviewedBy = formatReviewerList(row.exam_assignments || [], row.metadata?.reviewed_by || []);
   const examAgreement = getExamAgreementValue(aiReviewLabel, consensusResult);
-  const accuracyRaw = manifestExam?.accuracy_vs_consensus ?? legacySummary?.accuracy_vs_consensus ?? aiReview?.summary?.accuracy_vs_consensus;
+  const accuracyRaw = row._computedAccuracyVsConsensus ?? manifestExam?.accuracy_vs_consensus ?? legacySummary?.accuracy_vs_consensus ?? aiReview?.summary?.accuracy_vs_consensus;
   const accuracyValue = !consensusResult.hasConsensus
     ? 'No consensus'
     : formatAccuracyValue(accuracyRaw);
@@ -3204,6 +3314,10 @@ async function loadSupabaseExams() {
       exam_human_reviews: humanByExam.get(row.id) || []
     }));
 
+  if (selectedExamId && loadedFromApi && predictions?.length) {
+    cacheDynamicAgreementForSelectedExam();
+  }
+
   renderExamList();
   updateExamsPanelMode();
 }
@@ -3644,6 +3758,7 @@ async function loadExamFromApi() {
     baseTracks = payload.tracks || {};
     tracks = {};
     loadedFromApi = true;
+    cacheDynamicAgreementForSelectedExam();
 
     activateStep(4);
     bar.style.width = '95%';
@@ -3926,7 +4041,12 @@ function buildTracks() {
     });
     baseTracks = { 'AI': segs };
   }
-  tracks = { ...baseTracks };
+  const selectedRow = getSelectedExamRow();
+  const reviewerTracks = buildReviewerTracks(selectedRow);
+  const consensusTrack = selectedRow?._computedConsensusTrack?.length
+    ? { Consensus: selectedRow._computedConsensusTrack }
+    : {};
+  tracks = { ...baseTracks, ...reviewerTracks, ...consensusTrack };
   if (manualAnnotations.length) {
     tracks['Annotations'] = manualAnnotations
       .slice()
