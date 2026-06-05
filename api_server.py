@@ -26,7 +26,7 @@ LABEL_COLORS = {
     "seizure": "#F44336",
     "other": "#9E9E9E",
 }
-DEFAULT_CHUNK_SAMPLES = 100_000
+DEFAULT_CHUNK_SAMPLES = 8_000
 
 
 def load_artifacts():
