@@ -1226,6 +1226,18 @@ body.viewer-active .toolbar-account {
   letter-spacing: 0.08em;
   margin: 10px 0 6px;
 }
+.rp-help {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.45;
+  margin: -4px 0 10px;
+}
+.rp-meta {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
 .rp-input, .rp-textarea, .rp-select-lite {
   width: 100%;
   border: 1.5px solid rgba(0,0,0,0.12);
@@ -1301,6 +1313,17 @@ body.viewer-active .toolbar-account {
   background: #F7F5EF;
   color: #6C6C67;
   border: 1.5px solid rgba(0,0,0,0.12);
+}
+.rp-actions-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.rp-actions-row .rp-save-btn,
+.rp-actions-row .rp-secondary-btn {
+  flex: 1 1 180px;
+  width: auto;
 }
 .saved-list {
   display: flex;
@@ -1817,10 +1840,11 @@ body.viewer-active .toolbar-account {
         </div>
 
         <div class="rp-card">
-          <h3>Per-window fields</h3>
+          <h3>Selected segment</h3>
           <div class="window-pill" id="annotation-window-pill">0:00 – 0:10</div>
+          <div class="rp-meta" id="annotation-window-meta">No saved segment selected. Draw on the EEG to review any duration, or save the visible window.</div>
 
-          <div class="rp-field-label">Occurrence type</div>
+          <div class="rp-field-label">Segment review type</div>
           <select class="rp-select-lite" id="annotation-occurrence-type">
             <option value="—">—</option>
             <option value="Model correct">Model correct</option>
@@ -1833,49 +1857,66 @@ body.viewer-active .toolbar-account {
             <option value="Uncertain">Uncertain</option>
           </select>
 
-          <div class="rp-field-label">What the model marked</div>
+          <div class="rp-field-label">AI labels in this segment</div>
+          <div class="rp-help">Read-only summary of what the model marked inside the selected time range.</div>
           <div class="chip-grid" id="model-marked-grid"></div>
 
-          <div class="rp-field-label">What you think (select all that apply)</div>
+          <div class="rp-field-label">Clinical labels for this segment</div>
+          <div class="rp-help">Pick the phenomenon you believe is present in this selected segment.</div>
           <div class="chip-grid" id="you-think-grid"></div>
 
           <div class="rp-field-label">Looks lateralized?</div>
           <div class="chip-grid" id="lateralized-grid"></div>
 
-          <div class="rp-field-label">Model grade 1–10</div>
+          <div class="rp-field-label">AI quality score for this segment</div>
+          <div class="rp-help">Optional score for how well the AI described this specific segment.</div>
           <div class="grade-grid" id="model-grade-grid"></div>
 
-          <div class="rp-field-label">Comment</div>
-          <textarea class="rp-textarea" id="annotation-comment" placeholder="Free-text note for this window..."></textarea>
+          <div class="rp-field-label">Segment comment</div>
+          <textarea class="rp-textarea" id="annotation-comment" placeholder="Free-text note for this selected segment..."></textarea>
 
-          <button class="rp-save-btn" id="save-window-annotation">Save window annotation</button>
+          <button class="rp-save-btn" id="save-window-annotation">Save selected segment</button>
         </div>
 
         <div class="rp-card">
-          <h3>Observer agreement</h3>
-          <div class="rp-field-label">Agreement level</div>
+          <h3>Agreement with AI</h3>
+          <div class="rp-help">Overall judgment of how closely the AI matched your interpretation of the full exam.</div>
+          <div class="rp-field-label">Overall agreement level</div>
           <select class="rp-select-lite" id="observer-agreement-level">
             <option value="—">—</option>
             <option value="Full agreement">Full agreement</option>
             <option value="Partial agreement">Partial agreement</option>
             <option value="No agreement">No agreement</option>
           </select>
-          <div class="rp-field-label" style="text-transform:none;letter-spacing:0;color:var(--text-2);font-size:11px;">Observer comment</div>
-          <textarea class="rp-textarea" id="observer-comment" placeholder="Observer notes..."></textarea>
+          <div class="rp-field-label" style="text-transform:none;letter-spacing:0;color:var(--text-2);font-size:11px;">Agreement notes</div>
+          <textarea class="rp-textarea" id="observer-comment" placeholder="Explain where the AI matched or failed..."></textarea>
         </div>
 
         <div class="rp-card">
-          <h3>Exam review</h3>
-          <div class="rp-field-label">Overall model grade (1–10)</div>
+          <h3>Overall exam review</h3>
+          <div class="rp-help">Finish the review with your final exam-level label and an overall score for the model.</div>
+          <div class="rp-field-label">Your final exam label</div>
+          <select class="rp-select-lite" id="exam-final-label">
+            <option value="—">—</option>
+            <option value="seizure">seizure</option>
+            <option value="gpd">gpd</option>
+            <option value="lpd">lpd</option>
+            <option value="lrda">lrda</option>
+            <option value="grda">grda</option>
+            <option value="normal">normal</option>
+            <option value="other">other</option>
+          </select>
+          <div class="rp-field-label">Overall AI grade (1–10)</div>
           <div class="grade-grid" id="overall-grade-grid"></div>
-          <div class="rp-field-label" style="text-transform:none;letter-spacing:0;color:var(--text-2);font-size:11px;">General comments</div>
-          <textarea class="rp-textarea" id="overall-comment" placeholder="Overall exam comments..."></textarea>
+          <div class="rp-field-label" style="text-transform:none;letter-spacing:0;color:var(--text-2);font-size:11px;">Overall exam comment</div>
+          <textarea class="rp-textarea" id="overall-comment" placeholder="Summarize your full exam review..."></textarea>
         </div>
 
         <div class="rp-card">
-          <h3 id="saved-annotations-title">Saved annotations (0)</h3>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <button class="rp-save-btn" id="save-review-platform">Save review</button>
+          <h3 id="saved-annotations-title">Saved segments (0)</h3>
+          <div class="rp-help">Use "Save selected segment" as you go. When the exam is complete, use "Submit completed review".</div>
+          <div class="rp-actions-row">
+            <button class="rp-save-btn" id="save-review-platform">Submit completed review</button>
             <button class="rp-secondary-btn" id="export-saved-annotations">↓ Export JSON</button>
           </div>
           <div id="review-save-status" style="margin-top:10px;font-size:12px;color:var(--text-2);"></div>
@@ -2001,9 +2042,11 @@ let interactionMode = 'pan';
 let annotationType = 'seizure';
 let selectedAnnotationId = null;
 let dragAnnotation = null;
+let annotationAutoScrollTimer = null;
+let annotationDragClientX = null;
 const ANNOTATION_TAG_OPTIONS = ['lpd','gpd','lrda','grda','seizure','ied','suppression','spike','sharp','rda','burst','emg','artifact','cardiac art','elec pop','elec problem','eye blink'];
 const LATERALIZED_OPTIONS = ['Looks lateralized','Looks generalized','Bilateral','Not sure'];
-let examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
+let examReview = { finalLabel: '—', observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
 let currentWindowReview = null;
 const floatingTooltip = document.getElementById('floating-tooltip');
 let currentAppState = 'auth';
@@ -2318,6 +2361,7 @@ function refreshAnalysisPanel() {
     ? `${fmtTime(target.t0)} – ${fmtTime(target.t1)}`
     : `${fmtTime(startTime)} – ${fmtTime(Math.min(DURATION || 0, startTime + windowSize))}`;
   document.getElementById('annotation-window-pill').textContent = winLabel;
+  document.getElementById('annotation-window-meta').textContent = getSelectedSegmentSummary(target || currentWindowReview || makeWindowReview());
 
   if (target) {
     document.getElementById('annotation-occurrence-type').value = target.occurrenceType || '—';
@@ -2358,6 +2402,7 @@ function refreshAnalysisPanel() {
   });
 
   document.getElementById('observer-agreement-level').value = examReview.observerAgreementLevel || '—';
+  document.getElementById('exam-final-label').value = examReview.finalLabel || '—';
   document.getElementById('observer-comment').value = examReview.observerComment || '';
   document.getElementById('overall-comment').value = examReview.overallComment || '';
 }
@@ -2366,7 +2411,7 @@ function refreshSavedAnnotationsList() {
   const list = document.getElementById('saved-annotations-list');
   const title = document.getElementById('saved-annotations-title');
   if (!list || !title) return;
-  title.textContent = `Saved annotations (${manualAnnotations.length})`;
+  title.textContent = `Saved segments (${manualAnnotations.length})`;
   list.innerHTML = '';
   manualAnnotations
     .slice()
@@ -2651,6 +2696,17 @@ function setReviewSaveStatus(message, isError = false) {
   el.style.color = isError ? '#C64B38' : 'var(--text-2)';
 }
 
+function getSelectedSegmentSummary(target) {
+  const duration = Math.max(0, Number(target?.t1 || 0) - Number(target?.t0 || 0));
+  const roundedDuration = duration >= 60
+    ? `${(duration / 60).toFixed(1)} min`
+    : `${duration.toFixed(duration >= 10 ? 0 : 1)} s`;
+  if (selectedAnnotationId) {
+    return `Editing a saved segment spanning ${roundedDuration}.`;
+  }
+  return `No saved segment selected. If you save now, the current visible interval of ${roundedDuration} becomes a review segment.`;
+}
+
 function normalizeOptionalReviewValue(value) {
   if (value === null || value === undefined) return null;
   const normalized = String(value).trim();
@@ -2671,7 +2727,8 @@ function computeReviewFinalLabel() {
 
 function buildCurrentReviewPayload(status = 'completed') {
   const examCode = selectedExamId || currentFile?.name || null;
-  const finalLabel = computeReviewFinalLabel();
+  const explicitFinalLabel = normalizeOptionalReviewValue(examReview.finalLabel);
+  const finalLabel = explicitFinalLabel || computeReviewFinalLabel();
   const observerAgreementLevel = normalizeOptionalReviewValue(examReview.observerAgreementLevel);
   const overallGrade = normalizeOptionalReviewValue(examReview.overallGrade);
   return {
@@ -2710,6 +2767,7 @@ function hydrateReviewStateFromExisting(review) {
     comment: ann.comment || '',
   }));
   examReview = {
+    finalLabel: payload.final_label || payload.dominant_label || '—',
     observerAgreementLevel: review?.observer_agreement_level || payload?.observer_agreement?.level || '—',
     observerComment: review?.observer_comment || payload?.observer_agreement?.comment || '',
     overallGrade: String(review?.overall_model_grade ?? payload?.exam_review?.overall_grade ?? '-'),
@@ -3594,7 +3652,7 @@ function resetToUpload() {
   document.getElementById('time-lbl').style.display = 'none';
   document.getElementById('toolbar-account')?.classList.add('visible');
   loadedFromApi = false;
-  examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
+  examReview = { finalLabel: '—', observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
   currentWindowReview = null;
   applyDefaultViewerPreset();
 }
@@ -4640,6 +4698,41 @@ function navigate(t) {
   persistUiState();
 }
 
+function updateDragAnnotationFromClientX(clientX) {
+  const rect = eegCanvas.getBoundingClientRect();
+  const labelW = 72;
+  const plotW = eegCanvas.clientWidth - labelW - 8;
+  const x = clientX - rect.left;
+  dragAnnotation.t1 = annotationXToTime(x, labelW, plotW);
+}
+
+function stopAnnotationAutoScroll() {
+  if (!annotationAutoScrollTimer) return;
+  window.clearInterval(annotationAutoScrollTimer);
+  annotationAutoScrollTimer = null;
+}
+
+function startAnnotationAutoScroll(direction) {
+  if (annotationAutoScrollTimer) return;
+  annotationAutoScrollTimer = window.setInterval(() => {
+    if (!dragAnnotation || interactionMode !== 'annotate') {
+      stopAnnotationAutoScroll();
+      return;
+    }
+    const step = Math.max(0.5, windowSize * 0.08) * direction;
+    const nextStart = Math.max(0, Math.min(DURATION - windowSize, startTime + step));
+    if (Math.abs(nextStart - startTime) < 1e-6) {
+      stopAnnotationAutoScroll();
+      return;
+    }
+    navigate(nextStart);
+    if (annotationDragClientX !== null) {
+      updateDragAnnotationFromClientX(annotationDragClientX);
+      draw();
+    }
+  }, 60);
+}
+
 // timeline click
 document.getElementById('tl-canvas').addEventListener('click', e => {
   if (!edfData) return;
@@ -4680,17 +4773,24 @@ eegCanvas.addEventListener('mousedown', e => {
 
 window.addEventListener('mousemove', e => {
   if (!dragAnnotation || interactionMode !== 'annotate') return;
+  annotationDragClientX = e.clientX;
+  updateDragAnnotationFromClientX(e.clientX);
   const rect = eegCanvas.getBoundingClientRect();
-  const labelW = 72;
-  const plotW = eegCanvas.clientWidth - labelW - 8;
-  const x = e.clientX - rect.left;
-  const t = annotationXToTime(x, labelW, plotW);
-  dragAnnotation.t1 = t;
+  const relativeX = e.clientX - rect.left;
+  const edge = 24;
+  if (relativeX >= eegCanvas.clientWidth - edge) {
+    startAnnotationAutoScroll(1);
+  } else if (relativeX <= 72 + edge) {
+    startAnnotationAutoScroll(-1);
+  } else {
+    stopAnnotationAutoScroll();
+  }
   draw();
 });
 
 window.addEventListener('mouseup', () => {
   if (!dragAnnotation || interactionMode !== 'annotate') return;
+  stopAnnotationAutoScroll();
   const t0 = Math.min(dragAnnotation.t0, dragAnnotation.t1);
   const t1 = Math.max(dragAnnotation.t0, dragAnnotation.t1);
   if (t1 - t0 >= 0.2) {
@@ -4710,6 +4810,7 @@ window.addEventListener('mouseup', () => {
     selectedAnnotationId = ann.id;
   }
   dragAnnotation = null;
+  annotationDragClientX = null;
   buildViewer();
   updateAnnotationControls();
   draw();
@@ -4895,6 +4996,9 @@ document.getElementById('annotation-comment').addEventListener('input', e => {
 document.getElementById('observer-agreement-level').addEventListener('change', e => {
   examReview.observerAgreementLevel = e.target.value;
 });
+document.getElementById('exam-final-label').addEventListener('change', e => {
+  examReview.finalLabel = e.target.value;
+});
 document.getElementById('observer-comment').addEventListener('input', e => {
   examReview.observerComment = e.target.value;
 });
@@ -4943,15 +5047,17 @@ document.getElementById('save-review-platform').addEventListener('click', async 
 });
 
 document.getElementById('export-saved-annotations').addEventListener('click', () => {
+  const finalLabel = normalizeOptionalReviewValue(examReview.finalLabel) || computeReviewFinalLabel();
   const payload = {
     exam_id: selectedExamId || currentFile?.name || null,
     exported: new Date().toISOString(),
+    final_label: finalLabel,
     observer_agreement: {
-      level: examReview.observerAgreementLevel,
+      level: normalizeOptionalReviewValue(examReview.observerAgreementLevel),
       comment: examReview.observerComment,
     },
     exam_review: {
-      overall_grade: examReview.overallGrade,
+      overall_grade: normalizeOptionalReviewValue(examReview.overallGrade),
       comment: examReview.overallComment,
     },
     annotations: manualAnnotations,
