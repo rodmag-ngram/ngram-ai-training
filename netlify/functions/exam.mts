@@ -159,8 +159,17 @@ export default async (request: Request) => {
   }
 
   const encodedId = encodeURIComponent(examId);
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const orFilters = [
+    `exam_code.eq.${encodedId}`,
+    `source_file_name.eq.${encodedId}`,
+  ];
+  if (uuidPattern.test(examId)) {
+    orFilters.push(`id.eq.${encodedId}`);
+  }
+
   const exams = (await supabaseRest(
-    `exams?select=id,exam_code,source_file_name,edf_storage_path,metadata&or=(exam_code.eq.${encodedId},source_file_name.eq.${encodedId},id.eq.${encodedId})&limit=1`,
+    `exams?select=id,exam_code,source_file_name,edf_storage_path,metadata&or=(${orFilters.join(',')})&limit=1`,
     forwardedAuthHeader,
   )) as ExamRow[];
 
