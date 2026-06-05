@@ -2928,11 +2928,13 @@ async function persistCurrentReview(status = 'completed', options = {}) {
 function buildExamListRowModel(row) {
   const examCode = row.exam_code || row.source_file_name || '—';
   const manifestExam = getManifestExam(examCode);
+  const legacySummary = getLegacyExamSummary(examCode);
   const myHumanReview = (row.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile?.id);
   const reviewedBy = formatReviewerList(row.exam_assignments || [], row.metadata?.reviewed_by || []);
   const metrics = row.window_metrics || manifestExam?.window_metrics || {};
   const fallbackAccuracyRaw = metrics.window_agreement
     ?? manifestExam?.accuracy_vs_consensus
+    ?? legacySummary?.accuracy_vs_consensus
     ?? row._computedAccuracyVsConsensus
     ?? null;
   const hasConsensusFallback = fallbackAccuracyRaw !== null && fallbackAccuracyRaw !== undefined;
