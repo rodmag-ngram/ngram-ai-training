@@ -102,6 +102,39 @@ body {
   gap: 10px;
   padding-left: 18px;
 }
+.toolbar-exam-chip {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 320px;
+  padding: 0 12px;
+  height: 34px;
+  border: 1.5px solid var(--border);
+  border-radius: 100px;
+  background: rgba(255,255,255,0.82);
+}
+.toolbar-exam-chip.visible {
+  display: inline-flex;
+}
+.toolbar-exam-chip-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  flex: 0 0 auto;
+}
+.toolbar-exam-chip-value {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
 .toolbar-group + .toolbar-group {
   margin-left: 18px;
   position: relative;
@@ -1197,6 +1230,55 @@ body.viewer-active .toolbar-account {
   scrollbar-width: thin;
   scrollbar-color: rgba(0,0,0,0.12) transparent;
 }
+body.sidebar-collapsed #results-panel {
+  display: none;
+}
+.viewer-side-toggle {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.96);
+  box-shadow: var(--shadow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 7;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.viewer-side-toggle:hover {
+  background: #fff;
+  border-color: rgba(0,0,0,0.18);
+  transform: translateY(-1px);
+}
+.viewer-side-toggle-icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 1.8px solid rgba(26,26,26,0.72);
+  border-radius: 5px;
+}
+.viewer-side-toggle-icon::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  right: 2px;
+  width: 6px;
+  border-radius: 2px;
+  background: rgba(26,26,26,0.72);
+}
+body.sidebar-collapsed .viewer-side-toggle {
+  right: 18px;
+}
+body.sidebar-collapsed .viewer-side-toggle-icon::before {
+  right: auto;
+  left: 2px;
+}
 
 .rp-card {
   background: var(--card);
@@ -1585,6 +1667,10 @@ body.viewer-active .toolbar-account {
     </div>
     <div class="toolbar-viewer-spacer"></div>
     <div class="toolbar-group toolbar-group--actions toolbar-group--viewer-right">
+      <div class="toolbar-exam-chip" id="toolbar-exam-chip">
+        <span class="toolbar-exam-chip-label">Exam</span>
+        <span class="toolbar-exam-chip-value" id="toolbar-exam-id">—</span>
+      </div>
       <span id="time-lbl" style="display:flex;">00:00 – 00:20</span>
       <button class="tb-btn" id="btn-new" onclick="returnToExamList()">← Exams</button>
       <button class="tb-btn" id="btn-save" style="display:flex;">Export JSON</button>
@@ -1797,6 +1883,9 @@ body.viewer-active .toolbar-account {
     <div id="viewer-main">
       <!-- EEG canvas area -->
       <div id="eeg-area">
+        <button class="viewer-side-toggle" id="btn-sidebar-toggle" type="button" aria-label="Hide sidebar" title="Hide sidebar">
+          <span class="viewer-side-toggle-icon" aria-hidden="true"></span>
+        </button>
         <div id="canvas-wrap"><canvas id="eeg-canvas"></canvas></div>
         <div id="cmp-strip"><canvas id="cmp-canvas"></canvas></div>
         <div id="timeline-wrap"><canvas id="tl-canvas"></canvas></div>
@@ -1997,6 +2086,7 @@ let highCutHz = 100;
 let montageMode = 'referential';
 let visualGain = 1.0;
 let cmpVisible = false;
+let sidebarCollapsed = false;
 let loadedFromApi = false;
 let examManifest = [];
 let legacyExamReviewSummary = {};
@@ -2199,6 +2289,7 @@ function setFile(f) {
   pillName.textContent = f.name;
   filePill.classList.add('visible');
   btnAnalyze.disabled = false;
+  updateViewerExamChrome();
 }
 
 function clearFile(e) {
@@ -2207,6 +2298,7 @@ function clearFile(e) {
   fileInput.value = '';
   filePill.classList.remove('visible');
   btnAnalyze.disabled = !selectedExamId;
+  updateViewerExamChrome();
 }
 
 function setSelectedExam(examId) {
@@ -2220,6 +2312,37 @@ function setSelectedExam(examId) {
     filePill.classList.remove('visible');
   }
   btnAnalyze.disabled = !(currentFile || selectedExamId);
+  updateViewerExamChrome();
+  persistUiState();
+}
+
+function getVisibleExamId() {
+  return selectedExamId || currentFile?.name?.replace(/\.edf$/i, '') || '—';
+}
+
+function updateViewerExamChrome() {
+  const examChip = document.getElementById('toolbar-exam-chip');
+  const examIdLabel = document.getElementById('toolbar-exam-id');
+  if (examIdLabel) examIdLabel.textContent = getVisibleExamId();
+  if (examChip) examChip.classList.toggle('visible', Boolean(selectedExamId || currentFile));
+  const toggleBtn = document.getElementById('btn-sidebar-toggle');
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-label', sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar');
+    toggleBtn.setAttribute('title', sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar');
+  }
+  document.body.classList.toggle('sidebar-collapsed', sidebarCollapsed);
+}
+
+function toggleResultsSidebar() {
+  sidebarCollapsed = !sidebarCollapsed;
+  updateViewerExamChrome();
+  resize();
+  if (cmpVisible) {
+    resizeCmp();
+    drawCmp();
+  }
+  draw();
+  drawTimeline();
   persistUiState();
 }
 
@@ -3676,6 +3799,7 @@ function persistUiState() {
       highCutHz,
       montageMode,
       cmpVisible,
+      sidebarCollapsed,
     };
     window.localStorage.setItem(UI_STATE_STORAGE_KEY, JSON.stringify(payload));
   } catch (error) {
@@ -3702,6 +3826,7 @@ function applyRestoredViewerState(saved) {
   montageMode = saved.montageMode || 'referential';
   windowSize = Number(saved.windowSize) || 10;
   cmpVisible = Boolean(saved.cmpVisible);
+  sidebarCollapsed = Boolean(saved.sidebarCollapsed);
 
   document.getElementById('sel-scale').value = String(scale);
   document.getElementById('sel-low').value = String(lowCutHz);
@@ -3718,11 +3843,13 @@ function applyRestoredViewerState(saved) {
   if (cmpVisible) {
     setTimeout(() => { resizeCmp(); drawCmp(); }, 30);
   }
+  updateViewerExamChrome();
 }
 
 function showState(id) {
   currentAppState = id;
   document.body.classList.toggle('viewer-active', id === 'viewer');
+  document.body.classList.toggle('sidebar-collapsed', id === 'viewer' && sidebarCollapsed);
   document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
   const el = document.getElementById('state-' + id);
   // force reflow for transition
@@ -3741,6 +3868,7 @@ function resetToUpload() {
   examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
   currentWindowReview = null;
   applyDefaultViewerPreset();
+  updateViewerExamChrome();
 }
 
 function returnToExamList() {
@@ -3752,6 +3880,7 @@ function returnToExamList() {
   selectedAnnotationId = null;
   currentWindowReview = null;
   applyDefaultViewerPreset();
+  updateViewerExamChrome();
   showExamList();
 }
 
@@ -3983,6 +4112,7 @@ function finishLoading() {
     showState('viewer');
     document.getElementById('toolbar-viewer').style.display = 'flex';
     document.getElementById('toolbar-account')?.classList.remove('visible');
+    updateViewerExamChrome();
     if (pendingUiRestoreState) {
       applyRestoredViewerState(pendingUiRestoreState);
       pendingUiRestoreState = null;
@@ -5218,6 +5348,8 @@ async function loadExamManifest() {
 }
 
 initAuth();
+
+document.getElementById('btn-sidebar-toggle')?.addEventListener('click', toggleResultsSidebar);
 </script>
 </body>
 </html>
