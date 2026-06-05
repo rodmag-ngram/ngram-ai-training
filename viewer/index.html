@@ -1049,14 +1049,17 @@ body.viewer-active .toolbar-account {
 }
 
 .loading-brain {
-  width: 72px;
+  width: 96px;
   height: 72px;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .loading-brain svg {
-  width: 72px;
-  height: 72px;
-  opacity: 0.35;
+  width: 96px;
+  height: 36px;
+  opacity: 0.38;
 }
 .loading-pulse {
   position: absolute;
@@ -1762,9 +1765,8 @@ body.viewer-active .toolbar-account {
       <div class="loading-brain">
         <div class="loading-pulse"></div>
         <div class="loading-pulse"></div>
-        <svg viewBox="0 0 48 48" fill="none">
-          <path d="M8 32c0 4.4 3.6 8 8 8h16c4.4 0 8-3.6 8-8V22c0-2.2-1.8-4-4-4h-2c0-5.5-4.5-10-10-10S14 12.5 14 18h-2c-2.2 0-4 1.8-4 4v10z" fill="#1A1A1A" opacity=".15"/>
-          <path d="M6 26h4M10 26c0 0 1-4 4-4s4 4 4 4 1-6 4-6 4 6 4 6 1-4 4-4 4 4 4 4h4" stroke="#1A1A1A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg viewBox="0 0 307 62" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Neurogram">
+          <path d="M0 31C26.9951 31 26.9951 31 53.9901 31C80.9852 31 80.9852 31 107.98 31C134.975 31 134.975 61 161.97 61C188.965 61 188.965 1 215.96 1C242.955 1 242.955 31 269.95 31C296.945 31 296.945 31 303.694 31" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/>
         </svg>
       </div>
 
@@ -1831,12 +1833,6 @@ body.viewer-active .toolbar-account {
         <div class="rp-card">
           <h3>Statistics</h3>
           <div id="stats-container"></div>
-        </div>
-
-        <!-- Legend -->
-        <div class="rp-card">
-          <h3>Legend</h3>
-          <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;" id="legend-container"></div>
         </div>
 
         <div class="rp-card">
@@ -2480,6 +2476,10 @@ function getCompletedHumanReviews(row) {
   return (row?.exam_human_reviews || []).filter(review => review.review_status === 'completed');
 }
 
+function canViewAllExamReviews() {
+  return ['admin', 'manager'].includes(currentProfile?.role);
+}
+
 function getReviewAnnotations(review) {
   const annotations = review?.exported_payload?.annotations;
   return Array.isArray(annotations) ? annotations : [];
@@ -2504,6 +2504,7 @@ function getReviewWindowLabel(review, t0, t1) {
 }
 
 function buildReviewerTracks(row) {
+  if (!canViewAllExamReviews()) return {};
   const reviewerTracks = {};
   getCompletedHumanReviews(row).forEach(review => {
     const name = getReviewerDisplayName(review);
@@ -4110,7 +4111,7 @@ function buildTracks() {
   }
   const selectedRow = getSelectedExamRow();
   const reviewerTracks = buildReviewerTracks(selectedRow);
-  const consensusTrack = selectedRow?._computedConsensusTrack?.length
+  const consensusTrack = canViewAllExamReviews() && selectedRow?._computedConsensusTrack?.length
     ? { Consensus: selectedRow._computedConsensusTrack }
     : {};
   tracks = { ...baseTracks, ...reviewerTracks, ...consensusTrack };
@@ -4201,6 +4202,7 @@ function buildStats() {
 
 function buildLegend() {
   const container = document.getElementById('legend-container');
+  if (!container) return;
   container.innerHTML = '';
   Object.entries(LABEL_COLORS).forEach(([lbl, col]) => {
     const div = document.createElement('div');
