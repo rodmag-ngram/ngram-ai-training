@@ -2931,9 +2931,18 @@ function buildExamListRowModel(row) {
   const myHumanReview = (row.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile?.id);
   const reviewedBy = formatReviewerList(row.exam_assignments || [], row.metadata?.reviewed_by || []);
   const metrics = row.window_metrics || manifestExam?.window_metrics || {};
-  const consensusWindowCount = Number(metrics.consensus_window_count ?? row._consensusWindowCount ?? 0);
+  const fallbackAccuracyRaw = metrics.window_agreement
+    ?? manifestExam?.accuracy_vs_consensus
+    ?? row._computedAccuracyVsConsensus
+    ?? null;
+  const hasConsensusFallback = fallbackAccuracyRaw !== null && fallbackAccuracyRaw !== undefined;
+  const consensusWindowCount = Number(
+    metrics.consensus_window_count
+    ?? row._consensusWindowCount
+    ?? (hasConsensusFallback ? 1 : 0)
+  );
   const matchedWindowCount = Number(metrics.matched_window_count ?? row._matchedWindowCount ?? 0);
-  const accuracyRaw = metrics.window_agreement ?? row._computedAccuracyVsConsensus ?? null;
+  const accuracyRaw = fallbackAccuracyRaw;
   const accuracyValue = consensusWindowCount > 0
     ? formatAccuracyValue(accuracyRaw)
     : 'No consensus windows';
