@@ -3031,6 +3031,19 @@ function computeConsensusMetricsFromPredictions(preds, reviewerSources) {
 }
 
 function computeWindowMetricsForRowFromPayload(row, payload) {
+  const payloadMetrics = payload?.window_metrics;
+  if (payloadMetrics && (
+    Number(payloadMetrics?.consensus_window_count || 0) > 0 ||
+    Number(payloadMetrics?.matched_window_count || 0) > 0 ||
+    payloadMetrics?.window_agreement !== null && payloadMetrics?.window_agreement !== undefined
+  )) {
+    return {
+      consensus_window_count: Number(payloadMetrics.consensus_window_count || 0),
+      matched_window_count: Number(payloadMetrics.matched_window_count || 0),
+      window_agreement: payloadMetrics.window_agreement == null ? null : Number(payloadMetrics.window_agreement),
+      per_label_stats: payloadMetrics.per_label_stats || {},
+    };
+  }
   const reviewerSources = buildConsensusReviewerSourcesFromTracks(payload?.tracks, getCompletedHumanReviews(row));
   const state = computeConsensusMetricsFromPredictions(Array.isArray(payload?.predictions) ? payload.predictions : [], reviewerSources);
   return {
@@ -3834,14 +3847,16 @@ async function hydrateExamListWindowMetrics(rows) {
       try {
         const payload = await fetchExamManifestPayload(row, examCode);
         const metrics = computeWindowMetricsForRowFromPayload(row, payload);
-        row.window_metrics = metrics;
-        row._consensusWindowCount = metrics.consensus_window_count;
-        row._matchedWindowCount = metrics.matched_window_count;
-        row._computedAccuracyVsConsensus = metrics.window_agreement;
-        const manifestRow = getManifestExam(examCode);
-        if (manifestRow) {
-          manifestRow.window_metrics = metrics;
-          manifestRow.accuracy_vs_consensus = metrics.window_agreement;
+        if (metrics) {
+          row.window_metrics = metrics;
+          row._consensusWindowCount = metrics.consensus_window_count;
+          row._matchedWindowCount = metrics.matched_window_count;
+          row._computedAccuracyVsConsensus = metrics.window_agreement;
+          const manifestRow = getManifestExam(examCode);
+          if (manifestRow) {
+            manifestRow.window_metrics = metrics;
+            manifestRow.accuracy_vs_consensus = metrics.window_agreement;
+          }
         }
       } catch (error) {
         console.warn(`Could not hydrate agreement for ${examCode}.`, error);
@@ -3853,6 +3868,7 @@ async function hydrateExamListWindowMetrics(rows) {
       if (examListMetricsHydrationRun === runId) {
         if (sub) sub.textContent = `Calculating window agreement… ${completed}/${pendingRows.length}`;
         renderExamList();
+        if (examsPanelMode === 'ai') renderAiPanel();
       }
     }
   };
@@ -3861,6 +3877,7 @@ async function hydrateExamListWindowMetrics(rows) {
   if (examListMetricsHydrationRun === runId) {
     if (sub) sub.textContent = `${supabaseExamRows.length} exam(s) available`;
     renderExamList();
+    if (examsPanelMode === 'ai') renderAiPanel();
   }
 }
 
@@ -4080,6 +4097,7 @@ async function loadProfile(userId) {
 async function handleAuthenticatedSession(session) {
   const sameUser = currentSession?.user?.id && currentSession.user.id === session.user.id;
   const viewerAlreadyReady = currentAppState === 'viewer' && loadedFromApi && edfData && selectedExamId;
+  const examsAlreadyLoaded = currentAppState === 'exams' && Array.isArray(supabaseExamRows) && supabaseExamRows.length > 0;
   currentSession = session;
   if (!sameUser || !currentProfile) {
     currentProfile = await loadProfile(session.user.id);
@@ -4087,7 +4105,7 @@ async function handleAuthenticatedSession(session) {
   setToolbarUser(currentProfile, session.user.email);
   document.getElementById('auth-error').textContent = '';
 
-  if (sameUser && viewerAlreadyReady) {
+  if (sameUser && (viewerAlreadyReady || examsAlreadyLoaded)) {
     persistUiState();
     return;
   }
