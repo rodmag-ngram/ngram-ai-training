@@ -3821,7 +3821,11 @@ async function openExamFromList(examCode) {
 }
 
 function canExportJson() {
-  return ['admin', 'manager'].includes(currentProfile?.role);
+  return currentProfile?.role === 'admin';
+}
+
+function canUploadExams() {
+  return currentProfile?.role === 'admin';
 }
 
 function canAccessAiPanel() {
@@ -3842,8 +3846,16 @@ function setToolbarUser(profile, email) {
   if (toolbarAccount) toolbarAccount.classList.toggle('visible', Boolean(profile || email));
   const saveBtn = document.getElementById('btn-save');
   if (saveBtn) saveBtn.style.display = canExportJson() ? 'flex' : 'none';
+  const uploadExamBtn = document.getElementById('btn-upload-exam');
+  if (uploadExamBtn) uploadExamBtn.style.display = canUploadExams() ? 'inline-flex' : 'none';
   const aiBtn = document.getElementById('btn-ai-view');
   if (aiBtn) aiBtn.style.display = canAccessAiPanel() ? 'inline-flex' : 'none';
+  const aiDownloadJsonBtn = document.getElementById('btn-ai-download-json');
+  if (aiDownloadJsonBtn) aiDownloadJsonBtn.style.display = canExportJson() ? 'inline-flex' : 'none';
+  const aiDownloadLegacyBtn = document.getElementById('btn-ai-download-legacy');
+  if (aiDownloadLegacyBtn) aiDownloadLegacyBtn.style.display = canExportJson() ? 'inline-flex' : 'none';
+  const aiUploadModelBtn = document.getElementById('btn-ai-upload-model');
+  if (aiUploadModelBtn) aiUploadModelBtn.style.display = canUploadExams() ? 'inline-flex' : 'none';
   if (reviewWorkflowMode !== 'manager' && reviewWorkflowMode !== 'primary') {
     reviewWorkflowMode = getDefaultReviewWorkflowMode();
   }
@@ -4055,6 +4067,10 @@ function showState(id) {
 }
 
 function openUploadExamWorkflow() {
+  if (!canUploadExams()) {
+    showExamList();
+    return;
+  }
   currentFile = null;
   edfData = null;
   predictions = [];
