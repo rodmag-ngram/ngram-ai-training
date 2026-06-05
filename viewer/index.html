@@ -1636,9 +1636,6 @@ body.viewer-active .toolbar-account {
               <col id="col-duration">
               <col id="col-reviewed_by">
               <col id="col-my_review">
-              <col id="col-ai_review">
-              <col id="col-consensus_review">
-              <col id="col-agreement_per_exam">
               <col id="col-window_agreement">
             </colgroup>
             <thead>
@@ -1647,10 +1644,7 @@ body.viewer-active .toolbar-account {
                 <th class="sortable" data-sort-key="patient_code"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Patient</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="patient_code"></span></div></th>
                 <th class="sortable" data-sort-key="duration_seconds"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Duration</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="duration_seconds"></span></div></th>
                 <th class="sortable" data-sort-key="reviewed_by"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Reviewed by</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="reviewed_by"></span></div></th>
-                <th class="sortable" data-sort-key="my_review"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">My review</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="my_review"></span></div></th>
-                <th class="sortable" data-sort-key="ai_review"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">AI review</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="ai_review"></span></div></th>
-                <th class="sortable" data-sort-key="consensus_review"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Consensus review</span></span><span class="exam-th-meta"><span class="th-help" tabindex="0" data-tip="Consensus exists only when 2 or more doctors have the same final exam-level analysis. If all reviewed labels differ, the exam shows No consensus.">i</span><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="consensus_review"></span></div></th>
-                <th class="sortable" data-sort-key="agreement_per_exam"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Agreement per exam</span></span><span class="exam-th-meta"><span class="th-help" tabindex="0" data-tip="Compares the final AI review label with the final consensus review label for this exam.">i</span><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="agreement_per_exam"></span></div></th>
+                <th class="sortable" data-sort-key="my_review"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">My status</span></span><span class="exam-th-meta"><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="my_review"></span></div></th>
                 <th class="sortable" data-sort-key="window_agreement"><div class="exam-th-inner"><span class="exam-th-label"><span class="exam-th-text">Window agreement</span></span><span class="exam-th-meta"><span class="th-help" tabindex="0" data-tip="Proportion of 10-second windows in this exam where the AI label matches the consensus label. This is an exam-level agreement measure, not the global F1 benchmark of the model.">i</span><span class="exam-sort-indicator">↕</span></span><span class="exam-col-resize" data-resize-key="window_agreement"></span></div></th>
               </tr>
             </thead>
@@ -1664,14 +1658,14 @@ body.viewer-active .toolbar-account {
           <div class="ai-metric-panel">
             <div>
               <div class="ai-metric-title">Average agreement by type</div>
-              <div class="ai-metric-sub">Average window agreement grouped by the final consensus label of each exam.</div>
+              <div class="ai-metric-sub">Average window agreement grouped by the consensus label of 10-second windows.</div>
             </div>
             <div class="ai-type-list" id="ai-type-agreement-list"></div>
           </div>
           <div class="ai-metric-panel">
             <div>
               <div class="ai-metric-title">Cobertura por tipo</div>
-              <div class="ai-metric-sub">How many exams with consensus fall into each final reviewed type.</div>
+              <div class="ai-metric-sub">How many consensus windows belong to each label.</div>
             </div>
             <div class="ai-type-list" id="ai-type-coverage-list"></div>
           </div>
@@ -1891,17 +1885,6 @@ body.viewer-active .toolbar-account {
         <div class="rp-card">
           <h3>Overall exam review</h3>
           <div class="rp-help">Finish the review with your final exam-level label and an overall score for the model.</div>
-          <div class="rp-field-label">Your final exam label</div>
-          <select class="rp-select-lite" id="exam-final-label">
-            <option value="—">—</option>
-            <option value="seizure">seizure</option>
-            <option value="gpd">gpd</option>
-            <option value="lpd">lpd</option>
-            <option value="lrda">lrda</option>
-            <option value="grda">grda</option>
-            <option value="normal">normal</option>
-            <option value="other">other</option>
-          </select>
           <div class="rp-field-label">Overall AI grade (1–10)</div>
           <div class="grade-grid" id="overall-grade-grid"></div>
           <div class="rp-field-label" style="text-transform:none;letter-spacing:0;color:var(--text-2);font-size:11px;">Overall exam comment</div>
@@ -2027,9 +2010,6 @@ let examColumnWidths = {
   duration_seconds: 120,
   reviewed_by: 260,
   my_review: 130,
-  ai_review: 130,
-  consensus_review: 150,
-  agreement_per_exam: 150,
   window_agreement: 140,
 };
 let baseTracks = {};
@@ -2042,7 +2022,7 @@ let annotationAutoScrollTimer = null;
 let annotationDragClientX = null;
 const ANNOTATION_TAG_OPTIONS = ['lpd','gpd','lrda','grda','seizure','ied','suppression','spike','sharp','rda','burst','emg','artifact','cardiac art','elec pop','elec problem','eye blink'];
 const LATERALIZED_OPTIONS = ['Looks lateralized','Looks generalized','Bilateral','Not sure'];
-let examReview = { finalLabel: '—', observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
+let examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
 let currentWindowReview = null;
 const floatingTooltip = document.getElementById('floating-tooltip');
 let currentAppState = 'auth';
@@ -2185,9 +2165,9 @@ document.getElementById('btn-ai-download-json')?.addEventListener('click', () =>
     rows: supabaseExamRows.map(row => buildExamListRowModel(row)).map(item => ({
       exam_code: item.examCode,
       patient_code: item.patientCode,
-      ai_review: item.aiReviewLabel,
-      consensus_review: item.consensusResult.hasConsensus ? item.consensusResult.label : null,
-      agreement_per_exam: item.examAgreement,
+      my_review_status: item.myReviewStatus,
+      consensus_window_count: item.consensusWindowCount,
+      matched_window_count: item.matchedWindowCount,
       window_agreement: item.accuracyValue,
       reviewed_by: item.reviewedBy,
     })),
@@ -2398,7 +2378,6 @@ function refreshAnalysisPanel() {
   });
 
   document.getElementById('observer-agreement-level').value = examReview.observerAgreementLevel || '—';
-  document.getElementById('exam-final-label').value = examReview.finalLabel || '—';
   document.getElementById('observer-comment').value = examReview.observerComment || '';
   document.getElementById('overall-comment').value = examReview.overallComment || '';
 }
@@ -2524,16 +2503,17 @@ function buildReviewerTracks(row) {
 
 function buildDynamicConsensusState(row) {
   if (!row || !Array.isArray(predictions) || !predictions.length) {
-    return { accuracy: null, consensusTrack: [] };
+    return { accuracy: null, consensusTrack: [], consensusWindowCount: 0, matchedWindowCount: 0, perLabelStats: {} };
   }
   const completedReviews = getCompletedHumanReviews(row);
   if (completedReviews.length < 2) {
-    return { accuracy: null, consensusTrack: [] };
+    return { accuracy: null, consensusTrack: [], consensusWindowCount: 0, matchedWindowCount: 0, perLabelStats: {} };
   }
 
   const consensusWindows = [];
   let matched = 0;
   let consensusCount = 0;
+  const perLabelStats = {};
 
   predictions.forEach(windowPrediction => {
     const counts = {};
@@ -2544,7 +2524,12 @@ function buildDynamicConsensusState(row) {
     const [label, count] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
     if (!label || count < 2) return;
     consensusCount += 1;
+    if (!perLabelStats[label]) {
+      perLabelStats[label] = { consensus_window_count: 0, matched_window_count: 0, window_agreement: null };
+    }
+    perLabelStats[label].consensus_window_count += 1;
     if (windowPrediction.label === label) matched += 1;
+    if (windowPrediction.label === label) perLabelStats[label].matched_window_count += 1;
     consensusWindows.push({ t0: windowPrediction.t0, t1: windowPrediction.t1, label });
   });
 
@@ -2558,9 +2543,18 @@ function buildDynamicConsensusState(row) {
     }
   });
 
+  Object.values(perLabelStats).forEach(stats => {
+    stats.window_agreement = stats.consensus_window_count
+      ? Number((stats.matched_window_count / stats.consensus_window_count).toFixed(4))
+      : null;
+  });
+
   return {
     accuracy: consensusCount ? matched / consensusCount : null,
     consensusTrack: mergedConsensus,
+    consensusWindowCount: consensusCount,
+    matchedWindowCount: matched,
+    perLabelStats,
   };
 }
 
@@ -2570,6 +2564,14 @@ function cacheDynamicAgreementForSelectedExam() {
   const state = buildDynamicConsensusState(row);
   row._computedAccuracyVsConsensus = state.accuracy;
   row._computedConsensusTrack = state.consensusTrack;
+  row._consensusWindowCount = state.consensusWindowCount;
+  row._matchedWindowCount = state.matchedWindowCount;
+  row.window_metrics = {
+    consensus_window_count: state.consensusWindowCount,
+    matched_window_count: state.matchedWindowCount,
+    window_agreement: state.accuracy,
+    per_label_stats: state.perLabelStats,
+  };
 }
 
 function collectReviewerFinalLabels(row, manifestExam) {
@@ -2672,11 +2674,13 @@ function formatReviewerList(assignments = [], legacyReviewedBy = []) {
   return combined.join(', ');
 }
 
-function getExamAgreementValue(aiReviewLabel, consensusResult) {
-  if (!consensusResult.hasConsensus) return 'No consensus';
-  if (!aiReviewLabel) return 'pending';
-  return aiReviewLabel === consensusResult.label ? 'Match' : 'Mismatch';
+function getMyReviewStatus(review) {
+  if (!review?.review_status) return 'pending';
+  if (review.review_status === 'completed') return 'completed';
+  if (review.review_status === 'in_progress') return 'in progress';
+  return String(review.review_status).replace(/_/g, ' ');
 }
+
 function getSelectedExamRow() {
   if (!selectedExamId) return null;
   return supabaseExamRows.find(row => (row.exam_code || row.source_file_name || row.id) === selectedExamId) || null;
@@ -2728,8 +2732,6 @@ function computeReviewFinalLabel() {
 
 function buildCurrentReviewPayload(status = 'completed') {
   const examCode = selectedExamId || currentFile?.name || null;
-  const explicitFinalLabel = normalizeOptionalReviewValue(examReview.finalLabel);
-  const finalLabel = explicitFinalLabel || computeReviewFinalLabel();
   const observerAgreementLevel = normalizeOptionalReviewValue(examReview.observerAgreementLevel);
   const overallGrade = normalizeOptionalReviewValue(examReview.overallGrade);
   return {
@@ -2738,8 +2740,6 @@ function buildCurrentReviewPayload(status = 'completed') {
     reviewer_id: currentProfile?.id || null,
     reviewer_email: currentProfile?.email || currentSession?.user?.email || null,
     review_status: status,
-    final_label: finalLabel,
-    dominant_label: finalLabel,
     observer_agreement: {
       level: observerAgreementLevel,
       comment: examReview.observerComment,
@@ -2768,7 +2768,6 @@ function hydrateReviewStateFromExisting(review) {
     comment: ann.comment || '',
   }));
   examReview = {
-    finalLabel: payload.final_label || payload.dominant_label || '—',
     observerAgreementLevel: review?.observer_agreement_level || payload?.observer_agreement?.level || '—',
     observerComment: review?.observer_comment || payload?.observer_agreement?.comment || '',
     overallGrade: String(review?.overall_model_grade ?? payload?.exam_review?.overall_grade ?? '-'),
@@ -2869,19 +2868,15 @@ async function persistCurrentReview(status = 'completed', options = {}) {
 function buildExamListRowModel(row) {
   const examCode = row.exam_code || row.source_file_name || '—';
   const manifestExam = getManifestExam(examCode);
-  const legacySummary = getLegacyExamSummary(examCode);
   const myHumanReview = (row.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile?.id);
-  const legacyReviewerKey = getLegacyReviewerKeyForEmail(currentProfile?.email || currentSession?.user?.email);
-  const myReviewLabel = getHumanReviewFinalLabel(myHumanReview) || (legacyReviewerKey ? (manifestExam?.legacy_final_by_rater?.[legacyReviewerKey] || legacySummary?.legacy_final_by_rater?.[legacyReviewerKey]) : null);
-  const aiReview = row.exam_ai_reviews?.[0];
-  const aiReviewLabel = manifestExam?.ai_dominant_label || legacySummary?.ai_dominant_label || (aiReview?.review_status === 'completed' ? (aiReview?.summary?.dominant_label || null) : null);
-  const consensusResult = getConsensusResult(row, manifestExam);
   const reviewedBy = formatReviewerList(row.exam_assignments || [], row.metadata?.reviewed_by || []);
-  const examAgreement = getExamAgreementValue(aiReviewLabel, consensusResult);
-  const accuracyRaw = row._computedAccuracyVsConsensus ?? manifestExam?.accuracy_vs_consensus ?? legacySummary?.accuracy_vs_consensus ?? aiReview?.summary?.accuracy_vs_consensus;
-  const accuracyValue = !consensusResult.hasConsensus
-    ? 'No consensus'
-    : formatAccuracyValue(accuracyRaw);
+  const metrics = row.window_metrics || manifestExam?.window_metrics || {};
+  const consensusWindowCount = Number(metrics.consensus_window_count ?? row._consensusWindowCount ?? 0);
+  const matchedWindowCount = Number(metrics.matched_window_count ?? row._matchedWindowCount ?? 0);
+  const accuracyRaw = metrics.window_agreement ?? row._computedAccuracyVsConsensus ?? null;
+  const accuracyValue = consensusWindowCount > 0
+    ? formatAccuracyValue(accuracyRaw)
+    : 'No consensus windows';
 
   return {
     row,
@@ -2889,10 +2884,9 @@ function buildExamListRowModel(row) {
     patientCode: row.patient_code || '—',
     durationSeconds: Number(row.duration_seconds || manifestExam?.duration_s || 0),
     reviewedBy,
-    myReviewLabel,
-    aiReviewLabel,
-    consensusResult,
-    examAgreement,
+    myReviewStatus: getMyReviewStatus(myHumanReview),
+    consensusWindowCount,
+    matchedWindowCount,
     accuracyValue,
   };
 }
@@ -2914,58 +2908,15 @@ function getExamSortValue(item, key) {
       return item.reviewedBy === '—' ? '' : item.reviewedBy;
     case 'my_review':
       return {
-        rank: getSortableStatusRank(item.myReviewLabel || 'pending', {
+        rank: getSortableStatusRank(item.myReviewStatus || 'pending', {
           pending: 5,
-          normal: 10,
-          gpd: 20,
-          lpd: 30,
-          lrda: 40,
-          grda: 50,
-          seizure: 60,
-          other: 70,
+          'in progress': 10,
+          completed: 20,
         }),
-        label: item.myReviewLabel || 'pending',
-      };
-    case 'ai_review':
-      return {
-        rank: getSortableStatusRank(item.aiReviewLabel || 'pending', {
-          pending: 5,
-          normal: 10,
-          gpd: 20,
-          lpd: 30,
-          lrda: 40,
-          grda: 50,
-          seizure: 60,
-          other: 70,
-        }),
-        label: item.aiReviewLabel || 'pending',
-      };
-    case 'consensus_review':
-      return {
-        rank: getSortableStatusRank(item.consensusResult.hasConsensus ? item.consensusResult.label : 'no consensus', {
-          'no consensus': 5,
-          normal: 10,
-          gpd: 20,
-          lpd: 30,
-          lrda: 40,
-          grda: 50,
-          seizure: 60,
-          other: 70,
-        }),
-        label: item.consensusResult.hasConsensus ? item.consensusResult.label : 'No consensus',
-      };
-    case 'agreement_per_exam':
-      return {
-        rank: getSortableStatusRank(item.examAgreement, {
-          match: 30,
-          mismatch: 20,
-          pending: 10,
-          'no consensus': 0,
-        }),
-        label: item.examAgreement,
+        label: item.myReviewStatus || 'pending',
       };
     case 'window_agreement':
-      if (item.accuracyValue === 'No consensus') return { rank: -2, value: -1, label: 'No consensus' };
+      if (item.accuracyValue === 'No consensus windows') return { rank: -2, value: -1, label: 'No consensus windows' };
       if (item.accuracyValue === 'pending') return { rank: -1, value: -1, label: 'pending' };
       return { rank: 10, value: Number(item.accuracyValue), label: item.accuracyValue };
     default:
@@ -3116,52 +3067,37 @@ function renderAiPanel() {
   const insightGrid = document.getElementById('ai-insight-grid');
   if (!grid || !featureList || !typeAgreementList || !typeCoverageList || !insightGrid) return;
   const items = supabaseExamRows.map(buildExamListRowModel);
-  const consensusCount = items.filter(item => item.consensusResult.hasConsensus).length;
-  const matchCount = items.filter(item => item.examAgreement === 'Match').length;
-  const numericAccuracies = items
-    .map(item => Number(item.accuracyValue))
-    .filter(value => Number.isFinite(value));
-  const avgAgreement = numericAccuracies.length
-    ? (numericAccuracies.reduce((sum, value) => sum + value, 0) / numericAccuracies.length).toFixed(3)
-    : '—';
-  const aiLabels = items.reduce((acc, item) => {
-    const key = item.aiReviewLabel || 'pending';
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
-  const dominantAiLabel = Object.entries(aiLabels).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
-  const itemsWithConsensus = items.filter(item => item.consensusResult.hasConsensus);
-  const typeStats = itemsWithConsensus.reduce((acc, item) => {
-    const label = item.consensusResult.label;
-    if (!acc[label]) acc[label] = { count: 0, agreementSum: 0, agreementCount: 0, exactMatchCount: 0 };
-    acc[label].count += 1;
-    if (Number.isFinite(Number(item.accuracyValue))) {
-      acc[label].agreementSum += Number(item.accuracyValue);
-      acc[label].agreementCount += 1;
-    }
-    if (item.examAgreement === 'Match') acc[label].exactMatchCount += 1;
+  const totalConsensusWindows = items.reduce((sum, item) => sum + (item.consensusWindowCount || 0), 0);
+  const totalMatchedWindows = items.reduce((sum, item) => sum + (item.matchedWindowCount || 0), 0);
+  const avgAgreement = totalConsensusWindows ? (totalMatchedWindows / totalConsensusWindows).toFixed(3) : '—';
+  const typeStats = supabaseExamRows.reduce((acc, row) => {
+    const manifestExam = getManifestExam(row.exam_code || row.source_file_name || row.id);
+    const perLabel = row.window_metrics?.per_label_stats || manifestExam?.window_metrics?.per_label_stats || {};
+    Object.entries(perLabel).forEach(([label, stats]) => {
+      if (!acc[label]) acc[label] = { count: 0, matched: 0 };
+      acc[label].count += Number(stats.consensus_window_count || 0);
+      acc[label].matched += Number(stats.matched_window_count || 0);
+    });
     return acc;
   }, {});
   const typeStatsList = Object.entries(typeStats)
     .map(([label, stats]) => ({
       label,
       count: stats.count,
-      avgAgreement: stats.agreementCount ? stats.agreementSum / stats.agreementCount : 0,
-      exactMatchRate: stats.count ? stats.exactMatchCount / stats.count : 0,
+      avgAgreement: stats.count ? stats.matched / stats.count : 0,
     }))
     .sort((a, b) => b.avgAgreement - a.avgAgreement);
   const maxTypeCount = Math.max(...typeStatsList.map(item => item.count), 1);
   const bestType = typeStatsList[0] || null;
   const worstType = [...typeStatsList].sort((a, b) => a.avgAgreement - b.avgAgreement)[0] || null;
-  const noConsensusCount = items.filter(item => !item.consensusResult.hasConsensus).length;
-  const mismatchCount = items.filter(item => item.examAgreement === 'Mismatch').length;
-  const exactMatchRate = consensusCount ? (matchCount / consensusCount) : 0;
+  const examsWithConsensusWindows = items.filter(item => item.consensusWindowCount > 0).length;
+  const noConsensusCount = items.filter(item => !item.consensusWindowCount).length;
 
   grid.innerHTML = [
     { label: 'Model', value: 'LightGBM v1', sub: 'current local baseline' },
     { label: 'Exams', value: String(items.length), sub: 'available on the platform' },
-    { label: 'Consensus', value: `${consensusCount}/${items.length}`, sub: 'exams with valid consensus' },
-    { label: 'Average agreement', value: avgAgreement, sub: 'average window agreement' },
+    { label: 'Consensus windows', value: String(totalConsensusWindows), sub: `${examsWithConsensusWindows}/${items.length} exams contribute windows` },
+    { label: 'Average agreement', value: avgAgreement, sub: 'global agreement across consensus windows' },
   ].map(card => `
     <div class="ai-card">
       <div class="ai-card-label">${card.label}</div>
@@ -3179,7 +3115,7 @@ function renderAiPanel() {
         <span class="ai-type-label" style="background:${bg};color:${color};">${item.label}</span>
         <div class="ai-type-bar"><div class="ai-type-bar-fill" style="width:${barWidth};background:${color};"></div></div>
         <span class="ai-type-value">${item.avgAgreement.toFixed(3)}</span>
-        <span class="ai-type-count">${item.count} exam(s)</span>
+        <span class="ai-type-count">${item.count} window(s)</span>
       </div>
     `;
   }).join('') : `<div class="ai-metric-sub">There is not enough consensus yet to calculate this by type.</div>`;
@@ -3194,8 +3130,8 @@ function renderAiPanel() {
         <div class="ai-type-row">
           <span class="ai-type-label" style="background:${bg};color:${color};">${item.label}</span>
           <div class="ai-type-bar"><div class="ai-type-bar-fill" style="width:${barWidth};background:${color};"></div></div>
-          <span class="ai-type-value">${Math.round(item.exactMatchRate * 100)}%</span>
-          <span class="ai-type-count">${item.count} consensus case(s)</span>
+          <span class="ai-type-value">${Math.round(item.avgAgreement * 100)}%</span>
+          <span class="ai-type-count">${item.count} consensus window(s)</span>
         </div>
       `;
     }).join('') : `<div class="ai-metric-sub">No type coverage is available until valid consensus exists.</div>`;
@@ -3204,32 +3140,22 @@ function renderAiPanel() {
     {
       label: 'Best type',
       value: bestType ? bestType.label : '—',
-      sub: bestType ? `Average window agreement ${bestType.avgAgreement.toFixed(3)} across ${bestType.count} exam(s).` : 'Not enough data yet.',
+      sub: bestType ? `Average window agreement ${bestType.avgAgreement.toFixed(3)} across ${bestType.count} consensus windows.` : 'Not enough data yet.',
     },
     {
       label: 'Most difficult type',
       value: worstType ? worstType.label : '—',
-      sub: worstType ? `Average window agreement ${worstType.avgAgreement.toFixed(3)} across ${worstType.count} exam(s).` : 'Not enough data yet.',
+      sub: worstType ? `Average window agreement ${worstType.avgAgreement.toFixed(3)} across ${worstType.count} consensus windows.` : 'Not enough data yet.',
     },
     {
-      label: 'Final match',
-      value: `${Math.round(exactMatchRate * 100)}%`,
-      sub: `${matchCount} of ${consensusCount || 0} exams with valid consensus had a final match.`,
+      label: 'Matched windows',
+      value: `${totalMatchedWindows}/${totalConsensusWindows}`,
+      sub: 'Consensus windows where the AI label exactly matched the reviewer consensus.',
     },
     {
-      label: 'No consensus',
+      label: 'No consensus windows',
       value: String(noConsensusCount),
-      sub: 'Exams where all reviewers disagreed on the final label.',
-    },
-    {
-      label: 'Final mismatch',
-      value: String(mismatchCount),
-      sub: 'Exams with valid consensus where the AI reached a different final label.',
-    },
-    {
-      label: 'Dominant AI class',
-      value: dominantAiLabel,
-      sub: 'Most frequent final label among the model’s current outputs.',
+      sub: 'Exams that still have zero 10-second windows with reviewer consensus.',
     },
   ].map(card => `
     <div class="ai-insight-card">
@@ -3240,10 +3166,10 @@ function renderAiPanel() {
   `).join('');
 
   featureList.innerHTML = [
-    `The dominant AI class right now is <strong>${dominantAiLabel}</strong>.`,
-    `${matchCount} exam(s) currently have a final match between AI and consensus; ${items.length - matchCount} still show mismatch or no consensus.`,
+    `${totalMatchedWindows} of ${totalConsensusWindows || 0} consensus windows currently match the AI label exactly.`,
     `The type with the best average agreement right now is <strong>${bestType?.label || '—'}</strong>; the most challenging is <strong>${worstType?.label || '—'}</strong>.`,
-    `This area can evolve into the central hub for output downloads, performance audits, and future model upload/switch workflows.`,
+    `${noConsensusCount} exam(s) still have no reviewer-consensus windows, so they do not yet influence the model agreement summary.`,
+    `This panel is now centered on window-level agreement rather than final exam labels.`,
   ].map(text => `<li>${text}</li>`).join('');
 }
 
@@ -3257,35 +3183,24 @@ function renderExamList() {
   bindExamTableHeaderInteractions();
   if (!supabaseExamRows.length) {
     sub.textContent = 'No exams found in Supabase yet.';
-    body.innerHTML = `<tr><td colspan="9"><div class="empty-state">There are no exams in the database yet. You can still use the local viewer while we finish wiring the full ingestion flow.</div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="6"><div class="empty-state">There are no exams in the database yet. You can still use the local viewer while we finish wiring the full ingestion flow.</div></td></tr>`;
     return;
   }
   sub.textContent = `${supabaseExamRows.length} exam(s) available`;
   body.innerHTML = '';
   const sortedItems = sortExamListRows(supabaseExamRows.map(buildExamListRowModel));
   sortedItems.forEach(item => {
-    const { row, examCode, patientCode, durationSeconds, reviewedBy, myReviewLabel, aiReviewLabel, consensusResult, examAgreement, accuracyValue } = item;
+    const { examCode, patientCode, durationSeconds, reviewedBy, myReviewStatus, accuracyValue } = item;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><button type="button" class="exam-row-btn" data-exam-code="${examCode}">${examCode}</button></td>
       <td>${patientCode}</td>
       <td>${formatDurationSeconds(durationSeconds)}</td>
       <td>${reviewedBy}</td>
-      <td>${renderReviewBadge(myReviewLabel)}</td>
-      <td>${aiReviewLabel ? renderReviewBadge(aiReviewLabel) : `<span class="exam-status ${statusClass('pending')}">pending</span>`}</td>
-      <td>${consensusResult.hasConsensus ? renderReviewBadge(consensusResult.label) : `<span class="exam-status ${statusClass('pending')}">No consensus</span>`}</td>
+      <td><span class="exam-status ${myReviewStatus === 'completed' ? 'status-completed' : statusClass(myReviewStatus)}">${myReviewStatus}</span></td>
       <td>${
-        examAgreement === 'No consensus'
-          ? `<span class="exam-status ${statusClass('pending')}">No consensus</span>`
-          : examAgreement === 'pending'
-            ? `<span class="exam-status ${statusClass('pending')}">pending</span>`
-            : examAgreement === 'Match'
-              ? `<span class="exam-status status-completed">match</span>`
-              : `<span class="exam-status status-mismatch">mismatch</span>`
-      }</td>
-      <td>${
-        accuracyValue === 'No consensus'
-          ? `<span class="exam-status ${statusClass('pending')}">No consensus</span>`
+        accuracyValue === 'No consensus windows'
+          ? `<span class="exam-status ${statusClass('pending')}">No consensus windows</span>`
           : accuracyValue === 'pending'
             ? `<span class="exam-status ${statusClass('pending')}">pending</span>`
             : accuracyValue
@@ -3653,7 +3568,7 @@ function resetToUpload() {
   document.getElementById('time-lbl').style.display = 'none';
   document.getElementById('toolbar-account')?.classList.add('visible');
   loadedFromApi = false;
-  examReview = { finalLabel: '—', observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
+  examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
   currentWindowReview = null;
   applyDefaultViewerPreset();
 }
@@ -4998,9 +4913,6 @@ document.getElementById('annotation-comment').addEventListener('input', e => {
 document.getElementById('observer-agreement-level').addEventListener('change', e => {
   examReview.observerAgreementLevel = e.target.value;
 });
-document.getElementById('exam-final-label').addEventListener('change', e => {
-  examReview.finalLabel = e.target.value;
-});
 document.getElementById('observer-comment').addEventListener('input', e => {
   examReview.observerComment = e.target.value;
 });
@@ -5049,11 +4961,9 @@ document.getElementById('save-review-platform').addEventListener('click', async 
 });
 
 document.getElementById('export-saved-annotations').addEventListener('click', () => {
-  const finalLabel = normalizeOptionalReviewValue(examReview.finalLabel) || computeReviewFinalLabel();
   const payload = {
     exam_id: selectedExamId || currentFile?.name || null,
     exported: new Date().toISOString(),
-    final_label: finalLabel,
     observer_agreement: {
       level: normalizeOptionalReviewValue(examReview.observerAgreementLevel),
       comment: examReview.observerComment,
@@ -5127,7 +5037,7 @@ async function loadExamManifest() {
     }
     const opts = ['<option value="">Choose an exam…</option>']
       .concat(examManifest.map(exam =>
-        `<option value="${exam.exam_id}">${exam.exam_id} · ${Math.round(exam.duration_s/60)} min · ${exam.dominant_label}</option>`
+        `<option value="${exam.exam_id}">${exam.exam_id} · ${Math.round(exam.duration_s/60)} min</option>`
       ))
       .join('');
     selExamToolbar.innerHTML = opts;

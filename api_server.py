@@ -123,6 +123,19 @@ def exam_manifest():
             sum(int(ai_label == row["label"]) for ai_label, row in zip(ai_labels, rows)) / len(rows)
             if rows else None
         )
+        per_label_stats = {}
+        matched_window_count = 0
+        for ai_label, row in zip(ai_labels, rows):
+            consensus_label = row["label"]
+            label_stats = per_label_stats.setdefault(consensus_label, {
+                "consensus_window_count": 0,
+                "matched_window_count": 0,
+            })
+            label_stats["consensus_window_count"] += 1
+            if ai_label == consensus_label:
+                label_stats["matched_window_count"] += 1
+                matched_window_count += 1
+        consensus_window_count = len(rows)
         manifest.append({
             "exam_id": exam_id,
             "patient_id": rows[0]["patient_id"],
@@ -138,6 +151,18 @@ def exam_manifest():
             "legacy_final_by_rater": legacy_final_by_rater,
             "consensus_available": has_consensus,
             "consensus_dominant_label_final": legacy_consensus_label if has_consensus else None,
+            "window_metrics": {
+                "consensus_window_count": consensus_window_count,
+                "matched_window_count": matched_window_count,
+                "window_agreement": round(float(accuracy_vs_consensus), 4) if accuracy_vs_consensus is not None else None,
+                "per_label_stats": {
+                    label: {
+                        **stats,
+                        "window_agreement": round(stats["matched_window_count"] / stats["consensus_window_count"], 4) if stats["consensus_window_count"] else None,
+                    }
+                    for label, stats in per_label_stats.items()
+                },
+            },
         })
     return manifest
 
