@@ -2000,6 +2000,8 @@ let cmpVisible = false;
 let loadedFromApi = false;
 let examManifest = [];
 let legacyExamReviewSummary = {};
+const examManifestPayloadCache = new Map();
+let examListMetricsHydrationRun = 0;
 let supabaseExamRows = [];
 const VIEWER_PAYLOAD_BUCKET = 'eeg-viewer-payloads';
 let examsPanelMode = 'list';
@@ -2468,10 +2470,9 @@ function normalizeLegacyReviewerKey(name) {
   return String(name || '').trim().toLowerCase();
 }
 
-function buildConsensusReviewerSources(row) {
+function buildConsensusReviewerSourcesFromTracks(tracks, reviews) {
   const reviewerSources = [];
-  const selectedRow = row || getSelectedExamRow();
-  const legacyTracks = baseTracks && typeof baseTracks === 'object' ? baseTracks : {};
+  const legacyTracks = tracks && typeof tracks === 'object' ? tracks : {};
 
   Object.entries(legacyTracks).forEach(([name, segs]) => {
     if (String(name).toLowerCase() === 'ai' || String(name).toLowerCase() === 'consensus') return;
@@ -2488,7 +2489,7 @@ function buildConsensusReviewerSources(row) {
     });
   });
 
-  getCompletedHumanReviews(selectedRow).forEach(review => {
+  (Array.isArray(reviews) ? reviews : []).forEach(review => {
     const key = getReviewerIdentityKey(review);
     const annotations = getReviewAnnotations(review)
       .map(annotation => ({
@@ -2505,6 +2506,11 @@ function buildConsensusReviewerSources(row) {
   });
 
   return reviewerSources;
+}
+
+function buildConsensusReviewerSources(row) {
+  const selectedRow = row || getSelectedExamRow();
+  return buildConsensusReviewerSourcesFromTracks(baseTracks, getCompletedHumanReviews(selectedRow));
 }
 
 function getReviewWindowLabel(review, t0, t1) {
@@ -2542,31 +2548,8 @@ function getSegmentsWindowLabel(segments, t0, t1) {
   return best?.label || 'normal';
 }
 
-function buildReviewerTracks(row) {
-  if (!canViewAllExamReviews()) return {};
-  const reviewerTracks = {};
-  getCompletedHumanReviews(row).forEach(review => {
-    const name = getReviewerDisplayName(review);
-    const segs = getReviewAnnotations(review)
-      .map((annotation, index) => ({
-        t0: Number(annotation?.t0 ?? annotation?.t0_seconds ?? 0),
-        t1: Number(annotation?.t1 ?? annotation?.t1_seconds ?? 0),
-        label: annotation?.label || annotation?.primary_label || 'normal',
-        id: annotation?.id || `review_${review.id}_${index}`,
-      }))
-      .filter(seg => Number.isFinite(seg.t0) && Number.isFinite(seg.t1) && seg.t1 > seg.t0)
-      .sort((a, b) => a.t0 - b.t0);
-    if (segs.length) reviewerTracks[name] = segs;
-  });
-  return reviewerTracks;
-}
-
-function buildDynamicConsensusState(row) {
-  if (!row || !Array.isArray(predictions) || !predictions.length) {
-    return { accuracy: null, consensusTrack: [], consensusWindowCount: 0, matchedWindowCount: 0, perLabelStats: {} };
-  }
-  const reviewerSources = buildConsensusReviewerSources(row);
-  if (reviewerSources.length < 2) {
+function computeConsensusMetricsFromPredictions(preds, reviewerSources) {
+  if (!Array.isArray(preds) || !preds.length || !Array.isArray(reviewerSources) || reviewerSources.length < 2) {
     return { accuracy: null, consensusTrack: [], consensusWindowCount: 0, matchedWindowCount: 0, perLabelStats: {} };
   }
 
@@ -2575,10 +2558,10 @@ function buildDynamicConsensusState(row) {
   let consensusCount = 0;
   const perLabelStats = {};
 
-  predictions.forEach(windowPrediction => {
+  preds.forEach(windowPrediction => {
     const counts = {};
     reviewerSources.forEach(source => {
-      const label = getSegmentsWindowLabel(source.segments, windowPrediction.t0, windowPrediction.t1);
+      const label = getSegmentsWindowLabel(source.segments, Number(windowPrediction.t0 ?? 0), Number(windowPrediction.t1 ?? 0));
       counts[label] = (counts[label] || 0) + 1;
     });
     const [label, count] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
@@ -2590,7 +2573,7 @@ function buildDynamicConsensusState(row) {
     perLabelStats[label].consensus_window_count += 1;
     if (windowPrediction.label === label) matched += 1;
     if (windowPrediction.label === label) perLabelStats[label].matched_window_count += 1;
-    consensusWindows.push({ t0: windowPrediction.t0, t1: windowPrediction.t1, label });
+    consensusWindows.push({ t0: Number(windowPrediction.t0 ?? 0), t1: Number(windowPrediction.t1 ?? 0), label });
   });
 
   const mergedConsensus = [];
@@ -2616,6 +2599,40 @@ function buildDynamicConsensusState(row) {
     matchedWindowCount: matched,
     perLabelStats,
   };
+}
+
+function computeWindowMetricsForRowFromPayload(row, payload) {
+  const reviewerSources = buildConsensusReviewerSourcesFromTracks(payload?.tracks, getCompletedHumanReviews(row));
+  const state = computeConsensusMetricsFromPredictions(Array.isArray(payload?.predictions) ? payload.predictions : [], reviewerSources);
+  return {
+    consensus_window_count: state.consensusWindowCount,
+    matched_window_count: state.matchedWindowCount,
+    window_agreement: state.accuracy,
+    per_label_stats: state.perLabelStats,
+  };
+}
+
+function buildReviewerTracks(row) {
+  if (!canViewAllExamReviews()) return {};
+  const reviewerTracks = {};
+  getCompletedHumanReviews(row).forEach(review => {
+    const name = getReviewerDisplayName(review);
+    const segs = getReviewAnnotations(review)
+      .map((annotation, index) => ({
+        t0: Number(annotation?.t0 ?? annotation?.t0_seconds ?? 0),
+        t1: Number(annotation?.t1 ?? annotation?.t1_seconds ?? 0),
+        label: annotation?.label || annotation?.primary_label || 'normal',
+        id: annotation?.id || `review_${review.id}_${index}`,
+      }))
+      .filter(seg => Number.isFinite(seg.t0) && Number.isFinite(seg.t1) && seg.t1 > seg.t0)
+      .sort((a, b) => a.t0 - b.t0);
+    if (segs.length) reviewerTracks[name] = segs;
+  });
+  return reviewerTracks;
+}
+
+function buildDynamicConsensusState(row) {
+  return computeConsensusMetricsFromPredictions(predictions, buildConsensusReviewerSources(row));
 }
 
 function cacheDynamicAgreementForSelectedExam() {
@@ -3293,6 +3310,66 @@ function renderExamList() {
   });
 }
 
+async function fetchExamManifestPayload(examCode) {
+  if (!examCode) return null;
+  if (examManifestPayloadCache.has(examCode)) return examManifestPayloadCache.get(examCode);
+  const requestHeaders = {};
+  if (supabaseClient?.auth?.getSession) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session?.access_token) {
+      requestHeaders.Authorization = `Bearer ${session.access_token}`;
+    }
+  }
+  const res = await fetch(`/api/exam?id=${encodeURIComponent(examCode)}`, { headers: requestHeaders });
+  if (!res.ok) throw new Error(`manifest fetch failed (${res.status})`);
+  const payload = await res.json();
+  examManifestPayloadCache.set(examCode, payload);
+  return payload;
+}
+
+async function hydrateExamListWindowMetrics(rows) {
+  const runId = ++examListMetricsHydrationRun;
+  const pendingRows = (Array.isArray(rows) ? rows : []).filter(Boolean);
+  if (!pendingRows.length) return;
+  const sub = document.getElementById('exam-list-sub');
+  let completed = 0;
+  const concurrency = 6;
+  let cursor = 0;
+
+  const worker = async () => {
+    while (cursor < pendingRows.length) {
+      const index = cursor++;
+      const row = pendingRows[index];
+      const examCode = row.exam_code || row.source_file_name || row.id;
+      try {
+        const payload = await fetchExamManifestPayload(examCode);
+        const metrics = computeWindowMetricsForRowFromPayload(row, payload);
+        row.window_metrics = metrics;
+        row._consensusWindowCount = metrics.consensus_window_count;
+        row._matchedWindowCount = metrics.matched_window_count;
+        row._computedAccuracyVsConsensus = metrics.window_agreement;
+        const manifestRow = getManifestExam(examCode);
+        if (manifestRow) {
+          manifestRow.window_metrics = metrics;
+          manifestRow.accuracy_vs_consensus = metrics.window_agreement;
+        }
+      } catch (error) {
+        console.warn(`Could not hydrate agreement for ${examCode}.`, error);
+      }
+      completed += 1;
+      if (examListMetricsHydrationRun === runId) {
+        if (sub) sub.textContent = `Hydrating window agreement… ${completed}/${pendingRows.length}`;
+        renderExamList();
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, pendingRows.length) }, () => worker()));
+  if (examListMetricsHydrationRun === runId) {
+    renderExamList();
+  }
+}
+
 async function loadSupabaseExams() {
   if (!currentSession) return;
   const sub = document.getElementById('exam-list-sub');
@@ -3374,6 +3451,9 @@ async function loadSupabaseExams() {
 
   renderExamList();
   updateExamsPanelMode();
+  hydrateExamListWindowMetrics(supabaseExamRows).catch(error => {
+    console.error('Could not hydrate window agreement metrics.', error);
+  });
 }
 
 
