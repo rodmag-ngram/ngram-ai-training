@@ -1,0 +1,890 @@
+{
+  "PAT-24P6-EHJN-5ARW_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-24P6-EHJN-5ARW_0/manifest.json",
+    "bytes": 26485491,
+    "patient_id": "PAT-24P6-EHJN-5ARW",
+    "duration_s": 420.0,
+    "chunk_count": 7,
+    "largest_chunk_bytes": 3780853
+  },
+  "PAT-BUTO-P6JF-XL6R_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-BUTO-P6JF-XL6R_0/manifest.json",
+    "bytes": 453336816,
+    "patient_id": "PAT-BUTO-P6JF-XL6R",
+    "duration_s": 7190.0,
+    "chunk_count": 120,
+    "largest_chunk_bytes": 3782473
+  },
+  "PAT-BUTO-P6JF-XL6R_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-BUTO-P6JF-XL6R_1/manifest.json",
+    "bytes": 125488995,
+    "patient_id": "PAT-BUTO-P6JF-XL6R",
+    "duration_s": 1990.0,
+    "chunk_count": 34,
+    "largest_chunk_bytes": 3782546
+  },
+  "PAT-BUTO-P6JF-XL6R_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-BUTO-P6JF-XL6R_2/manifest.json",
+    "bytes": 125545199,
+    "patient_id": "PAT-BUTO-P6JF-XL6R",
+    "duration_s": 1990.0,
+    "chunk_count": 34,
+    "largest_chunk_bytes": 3783535
+  },
+  "PAT-CPJF-CXOZ-3JQ2-1_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-CPJF-CXOZ-3JQ2-1_0/manifest.json",
+    "bytes": 112690030,
+    "patient_id": "PAT-CPJF-CXOZ-3JQ2-1",
+    "duration_s": 1790.0,
+    "chunk_count": 30,
+    "largest_chunk_bytes": 3775913
+  },
+  "PAT-CPJF-CXOZ-3JQ2-1_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-CPJF-CXOZ-3JQ2-1_1/manifest.json",
+    "bytes": 49744977,
+    "patient_id": "PAT-CPJF-CXOZ-3JQ2-1",
+    "duration_s": 790.0,
+    "chunk_count": 14,
+    "largest_chunk_bytes": 3776712
+  },
+  "PAT-CPJF-CXOZ-3JQ2-1_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-CPJF-CXOZ-3JQ2-1_2/manifest.json",
+    "bytes": 74891366,
+    "patient_id": "PAT-CPJF-CXOZ-3JQ2-1",
+    "duration_s": 1190.0,
+    "chunk_count": 20,
+    "largest_chunk_bytes": 3774015
+  },
+  "PAT-CPJF-CXOZ-3JQ2-1_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-CPJF-CXOZ-3JQ2-1_3/manifest.json",
+    "bytes": 68575999,
+    "patient_id": "PAT-CPJF-CXOZ-3JQ2-1",
+    "duration_s": 1090.0,
+    "chunk_count": 19,
+    "largest_chunk_bytes": 3772349
+  },
+  "PAT-CPJF-CXOZ-3JQ2-1_4": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-CPJF-CXOZ-3JQ2-1_4/manifest.json",
+    "bytes": 43405079,
+    "patient_id": "PAT-CPJF-CXOZ-3JQ2-1",
+    "duration_s": 690.0,
+    "chunk_count": 12,
+    "largest_chunk_bytes": 3772204
+  },
+  "PAT-CVGW-NTUL-TCC5_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-CVGW-NTUL-TCC5_0/manifest.json",
+    "bytes": 153204964,
+    "patient_id": "PAT-CVGW-NTUL-TCC5",
+    "duration_s": 2430.0,
+    "chunk_count": 41,
+    "largest_chunk_bytes": 3781741
+  },
+  "PAT-EM6R-GP5P-2SA7-1_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-EM6R-GP5P-2SA7-1_1/manifest.json",
+    "bytes": 37178743,
+    "patient_id": "PAT-EM6R-GP5P-2SA7-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3779730
+  },
+  "PAT-EM6R-GP5P-2SA7-1_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-EM6R-GP5P-2SA7-1_2/manifest.json",
+    "bytes": 125286531,
+    "patient_id": "PAT-EM6R-GP5P-2SA7-1",
+    "duration_s": 1990.0,
+    "chunk_count": 34,
+    "largest_chunk_bytes": 3777288
+  },
+  "PAT-EM6R-GP5P-2SA7-1_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-EM6R-GP5P-2SA7-1_3/manifest.json",
+    "bytes": 62324332,
+    "patient_id": "PAT-EM6R-GP5P-2SA7-1",
+    "duration_s": 990.0,
+    "chunk_count": 17,
+    "largest_chunk_bytes": 3779116
+  },
+  "PAT-EM6R-GP5P-2SA7-1_4": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-EM6R-GP5P-2SA7-1_4/manifest.json",
+    "bytes": 37124232,
+    "patient_id": "PAT-EM6R-GP5P-2SA7-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3773489
+  },
+  "PAT-GFL2-FU6V-2NJ7_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-GFL2-FU6V-2NJ7_0/manifest.json",
+    "bytes": 125452521,
+    "patient_id": "PAT-GFL2-FU6V-2NJ7",
+    "duration_s": 1990.0,
+    "chunk_count": 34,
+    "largest_chunk_bytes": 3780890
+  },
+  "PAT-GFL2-FU6V-2NJ7_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-GFL2-FU6V-2NJ7_1/manifest.json",
+    "bytes": 93898201,
+    "patient_id": "PAT-GFL2-FU6V-2NJ7",
+    "duration_s": 1490.0,
+    "chunk_count": 25,
+    "largest_chunk_bytes": 3780824
+  },
+  "PAT-GFL2-FU6V-2NJ7_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-GFL2-FU6V-2NJ7_2/manifest.json",
+    "bytes": 75004141,
+    "patient_id": "PAT-GFL2-FU6V-2NJ7",
+    "duration_s": 1190.0,
+    "chunk_count": 20,
+    "largest_chunk_bytes": 3780789
+  },
+  "PAT-GFL2-FU6V-2NJ7_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-GFL2-FU6V-2NJ7_3/manifest.json",
+    "bytes": 138082991,
+    "patient_id": "PAT-GFL2-FU6V-2NJ7",
+    "duration_s": 2190.0,
+    "chunk_count": 37,
+    "largest_chunk_bytes": 3783800
+  },
+  "PAT-GFL2-FU6V-2NJ7_4": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-GFL2-FU6V-2NJ7_4/manifest.json",
+    "bytes": 125424823,
+    "patient_id": "PAT-GFL2-FU6V-2NJ7",
+    "duration_s": 1990.0,
+    "chunk_count": 34,
+    "largest_chunk_bytes": 3781753
+  },
+  "PAT-HADR-MNYC-ZZM2_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-HADR-MNYC-ZZM2_0/manifest.json",
+    "bytes": 150230820,
+    "patient_id": "PAT-HADR-MNYC-ZZM2",
+    "duration_s": 2390.0,
+    "chunk_count": 40,
+    "largest_chunk_bytes": 3771101
+  },
+  "PAT-I5VO-46VG-LM6E-1_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-I5VO-46VG-LM6E-1_0/manifest.json",
+    "bytes": 81864659,
+    "patient_id": "PAT-I5VO-46VG-LM6E-1",
+    "duration_s": 1300.0,
+    "chunk_count": 22,
+    "largest_chunk_bytes": 3776305
+  },
+  "PAT-I5VO-46VG-LM6E_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-I5VO-46VG-LM6E_0/manifest.json",
+    "bytes": 75483403,
+    "patient_id": "PAT-I5VO-46VG-LM6E",
+    "duration_s": 1200.0,
+    "chunk_count": 20,
+    "largest_chunk_bytes": 3772323
+  },
+  "PAT-IWM7-OFSQ-T7YB_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-IWM7-OFSQ-T7YB_0/manifest.json",
+    "bytes": 49761134,
+    "patient_id": "PAT-IWM7-OFSQ-T7YB",
+    "duration_s": 790.0,
+    "chunk_count": 14,
+    "largest_chunk_bytes": 3778213
+  },
+  "PAT-IZHL-Q2FE-XSZL-1_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-IZHL-Q2FE-XSZL-1_0/manifest.json",
+    "bytes": 76097394,
+    "patient_id": "PAT-IZHL-Q2FE-XSZL-1",
+    "duration_s": 1210.0,
+    "chunk_count": 21,
+    "largest_chunk_bytes": 3771314
+  },
+  "PAT-IZHL-Q2FE-XSZL_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-IZHL-Q2FE-XSZL_0/manifest.json",
+    "bytes": 81811878,
+    "patient_id": "PAT-IZHL-Q2FE-XSZL",
+    "duration_s": 1300.0,
+    "chunk_count": 22,
+    "largest_chunk_bytes": 3773677
+  },
+  "PAT-JWJ3-3LKH-D5GK-1_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-JWJ3-3LKH-D5GK-1_0/manifest.json",
+    "bytes": 49815440,
+    "patient_id": "PAT-JWJ3-3LKH-D5GK-1",
+    "duration_s": 790.0,
+    "chunk_count": 14,
+    "largest_chunk_bytes": 3781773
+  },
+  "PAT-JWJ3-3LKH-D5GK-2_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-JWJ3-3LKH-D5GK-2_0/manifest.json",
+    "bytes": 49815196,
+    "patient_id": "PAT-JWJ3-3LKH-D5GK-2",
+    "duration_s": 790.0,
+    "chunk_count": 14,
+    "largest_chunk_bytes": 3781081
+  },
+  "PAT-JWJ3-3LKH-D5GK-2_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-JWJ3-3LKH-D5GK-2_1/manifest.json",
+    "bytes": 37214291,
+    "patient_id": "PAT-JWJ3-3LKH-D5GK-2",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3782487
+  },
+  "PAT-JWJ3-3LKH-D5GK-2_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-JWJ3-3LKH-D5GK-2_2/manifest.json",
+    "bytes": 49829411,
+    "patient_id": "PAT-JWJ3-3LKH-D5GK-2",
+    "duration_s": 790.0,
+    "chunk_count": 14,
+    "largest_chunk_bytes": 3781849
+  },
+  "PAT-KR4D-3VJK-Y3G6_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-KR4D-3VJK-Y3G6_0/manifest.json",
+    "bytes": 104266914,
+    "patient_id": "PAT-KR4D-3VJK-Y3G6",
+    "duration_s": 1990.0,
+    "chunk_count": 34,
+    "largest_chunk_bytes": 3155397
+  },
+  "PAT-KR4D-3VJK-Y3G6_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-KR4D-3VJK-Y3G6_1/manifest.json",
+    "bytes": 182648675,
+    "patient_id": "PAT-KR4D-3VJK-Y3G6",
+    "duration_s": 3490.0,
+    "chunk_count": 59,
+    "largest_chunk_bytes": 3143032
+  },
+  "PAT-KSKE-JA4Y-U7OA_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-KSKE-JA4Y-U7OA_0/manifest.json",
+    "bytes": 74909557,
+    "patient_id": "PAT-KSKE-JA4Y-U7OA",
+    "duration_s": 1190.0,
+    "chunk_count": 20,
+    "largest_chunk_bytes": 3776098
+  },
+  "PAT-KSKE-JA4Y-U7OA_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-KSKE-JA4Y-U7OA_1/manifest.json",
+    "bytes": 37130947,
+    "patient_id": "PAT-KSKE-JA4Y-U7OA",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3774323
+  },
+  "PAT-KXNG-QPLZ-K4HD_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-KXNG-QPLZ-K4HD_0/manifest.json",
+    "bytes": 74838569,
+    "patient_id": "PAT-KXNG-QPLZ-K4HD",
+    "duration_s": 1190.0,
+    "chunk_count": 20,
+    "largest_chunk_bytes": 3771892
+  },
+  "PAT-KXNG-QPLZ-K4HD_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-KXNG-QPLZ-K4HD_1/manifest.json",
+    "bytes": 37115781,
+    "patient_id": "PAT-KXNG-QPLZ-K4HD",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3772338
+  },
+  "PAT-KXNG-QPLZ-K4HD_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-KXNG-QPLZ-K4HD_2/manifest.json",
+    "bytes": 37113235,
+    "patient_id": "PAT-KXNG-QPLZ-K4HD",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3773943
+  },
+  "PAT-NCNY-6Y7M-3KLA_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-NCNY-6Y7M-3KLA_0/manifest.json",
+    "bytes": 49803692,
+    "patient_id": "PAT-NCNY-6Y7M-3KLA",
+    "duration_s": 790.0,
+    "chunk_count": 14,
+    "largest_chunk_bytes": 3780736
+  },
+  "PAT-NCNY-6Y7M-3KLA_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-NCNY-6Y7M-3KLA_1/manifest.json",
+    "bytes": 37194265,
+    "patient_id": "PAT-NCNY-6Y7M-3KLA",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3781308
+  },
+  "PAT-NCNY-6Y7M-3KLA_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-NCNY-6Y7M-3KLA_2/manifest.json",
+    "bytes": 62407615,
+    "patient_id": "PAT-NCNY-6Y7M-3KLA",
+    "duration_s": 990.0,
+    "chunk_count": 17,
+    "largest_chunk_bytes": 3780586
+  },
+  "PAT-PTOV-RWSP-LALX_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-PTOV-RWSP-LALX_1/manifest.json",
+    "bytes": 37172397,
+    "patient_id": "PAT-PTOV-RWSP-LALX",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3779397
+  },
+  "PAT-PTOV-RWSP-LALX_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-PTOV-RWSP-LALX_2/manifest.json",
+    "bytes": 37180211,
+    "patient_id": "PAT-PTOV-RWSP-LALX",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3782998
+  },
+  "PAT-PTOV-RWSP-LALX_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-PTOV-RWSP-LALX_3/manifest.json",
+    "bytes": 37141926,
+    "patient_id": "PAT-PTOV-RWSP-LALX",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3776016
+  },
+  "PAT-PXAV-6ZVH-VZ2L_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-PXAV-6ZVH-VZ2L_0/manifest.json",
+    "bytes": 37149622,
+    "patient_id": "PAT-PXAV-6ZVH-VZ2L",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3775252
+  },
+  "PAT-PXAV-6ZVH-VZ2L_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-PXAV-6ZVH-VZ2L_1/manifest.json",
+    "bytes": 93811693,
+    "patient_id": "PAT-PXAV-6ZVH-VZ2L",
+    "duration_s": 1490.0,
+    "chunk_count": 25,
+    "largest_chunk_bytes": 3778653
+  },
+  "PAT-PXAV-6ZVH-VZ2L_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-PXAV-6ZVH-VZ2L_2/manifest.json",
+    "bytes": 150400121,
+    "patient_id": "PAT-PXAV-6ZVH-VZ2L",
+    "duration_s": 2390.0,
+    "chunk_count": 40,
+    "largest_chunk_bytes": 3775097
+  },
+  "PAT-PXAV-6ZVH-VZ2L_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-PXAV-6ZVH-VZ2L_3/manifest.json",
+    "bytes": 37211941,
+    "patient_id": "PAT-PXAV-6ZVH-VZ2L",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3783570
+  },
+  "PAT-RGST-HWEI-WROJ_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-RGST-HWEI-WROJ_0/manifest.json",
+    "bytes": 37217046,
+    "patient_id": "PAT-RGST-HWEI-WROJ",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3782843
+  },
+  "PAT-RGST-HWEI-WROJ_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-RGST-HWEI-WROJ_1/manifest.json",
+    "bytes": 30918173,
+    "patient_id": "PAT-RGST-HWEI-WROJ",
+    "duration_s": 490.0,
+    "chunk_count": 9,
+    "largest_chunk_bytes": 3782739
+  },
+  "PAT-SIDL-S7EF-6RUX_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-SIDL-S7EF-6RUX_0/manifest.json",
+    "bytes": 74913406,
+    "patient_id": "PAT-SIDL-S7EF-6RUX",
+    "duration_s": 1190.0,
+    "chunk_count": 20,
+    "largest_chunk_bytes": 3778669
+  },
+  "PAT-SIDL-S7EF-6RUX_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-SIDL-S7EF-6RUX_1/manifest.json",
+    "bytes": 56030187,
+    "patient_id": "PAT-SIDL-S7EF-6RUX",
+    "duration_s": 890.0,
+    "chunk_count": 15,
+    "largest_chunk_bytes": 3778060
+  },
+  "PAT-SIDL-S7EF-6RUX_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-SIDL-S7EF-6RUX_2/manifest.json",
+    "bytes": 62331104,
+    "patient_id": "PAT-SIDL-S7EF-6RUX",
+    "duration_s": 990.0,
+    "chunk_count": 17,
+    "largest_chunk_bytes": 3777836
+  },
+  "PAT-SIDL-S7EF-6RUX_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-SIDL-S7EF-6RUX_3/manifest.json",
+    "bytes": 62298717,
+    "patient_id": "PAT-SIDL-S7EF-6RUX",
+    "duration_s": 990.0,
+    "chunk_count": 17,
+    "largest_chunk_bytes": 3776366
+  },
+  "PAT-SIDL-S7EF-6RUX_4": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-SIDL-S7EF-6RUX_4/manifest.json",
+    "bytes": 74904523,
+    "patient_id": "PAT-SIDL-S7EF-6RUX",
+    "duration_s": 1190.0,
+    "chunk_count": 20,
+    "largest_chunk_bytes": 3776277
+  },
+  "PAT-SVJM-H27F-FWW3_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-SVJM-H27F-FWW3_0/manifest.json",
+    "bytes": 37055065,
+    "patient_id": "PAT-SVJM-H27F-FWW3",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3766236
+  },
+  "PAT-SVJM-H27F-FWW3_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-SVJM-H27F-FWW3_1/manifest.json",
+    "bytes": 55900254,
+    "patient_id": "PAT-SVJM-H27F-FWW3",
+    "duration_s": 890.0,
+    "chunk_count": 15,
+    "largest_chunk_bytes": 3766684
+  },
+  "PAT-SVJM-H27F-FWW3_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-SVJM-H27F-FWW3_2/manifest.json",
+    "bytes": 37078790,
+    "patient_id": "PAT-SVJM-H27F-FWW3",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3768194
+  },
+  "PAT-T7SG-THKO-QLFY_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-T7SG-THKO-QLFY_0/manifest.json",
+    "bytes": 55990157,
+    "patient_id": "PAT-T7SG-THKO-QLFY",
+    "duration_s": 890.0,
+    "chunk_count": 15,
+    "largest_chunk_bytes": 3772845
+  },
+  "PAT-T7SG-THKO-QLFY_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-T7SG-THKO-QLFY_1/manifest.json",
+    "bytes": 37123049,
+    "patient_id": "PAT-T7SG-THKO-QLFY",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3773134
+  },
+  "PAT-T7SG-THKO-QLFY_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-T7SG-THKO-QLFY_2/manifest.json",
+    "bytes": 37119522,
+    "patient_id": "PAT-T7SG-THKO-QLFY",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3774283
+  },
+  "PAT-T7SG-THKO-QLFY_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-T7SG-THKO-QLFY_3/manifest.json",
+    "bytes": 18246428,
+    "patient_id": "PAT-T7SG-THKO-QLFY",
+    "duration_s": 290.0,
+    "chunk_count": 5,
+    "largest_chunk_bytes": 3771970
+  },
+  "PAT-TTD6-GLGP-A4XF_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-TTD6-GLGP-A4XF_0/manifest.json",
+    "bytes": 43409286,
+    "patient_id": "PAT-TTD6-GLGP-A4XF",
+    "duration_s": 690.0,
+    "chunk_count": 12,
+    "largest_chunk_bytes": 3773837
+  },
+  "PAT-TTD6-GLGP-A4XF_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-TTD6-GLGP-A4XF_1/manifest.json",
+    "bytes": 37121476,
+    "patient_id": "PAT-TTD6-GLGP-A4XF",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3772304
+  },
+  "PAT-TTD6-GLGP-A4XF_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-TTD6-GLGP-A4XF_2/manifest.json",
+    "bytes": 37114067,
+    "patient_id": "PAT-TTD6-GLGP-A4XF",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3771972
+  },
+  "PAT-TTD6-GLGP-A4XF_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-TTD6-GLGP-A4XF_3/manifest.json",
+    "bytes": 43416151,
+    "patient_id": "PAT-TTD6-GLGP-A4XF",
+    "duration_s": 690.0,
+    "chunk_count": 12,
+    "largest_chunk_bytes": 3773034
+  },
+  "PAT-U2XE-DTG5-VLMC-1_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-1_0/manifest.json",
+    "bytes": 37138756,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3775196
+  },
+  "PAT-U2XE-DTG5-VLMC-1_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-1_1/manifest.json",
+    "bytes": 37195345,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3786338
+  },
+  "PAT-U2XE-DTG5-VLMC-1_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-1_2/manifest.json",
+    "bytes": 37237634,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3790285
+  },
+  "PAT-U2XE-DTG5-VLMC-1_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-1_3/manifest.json",
+    "bytes": 37331743,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3798529
+  },
+  "PAT-U2XE-DTG5-VLMC-1_4": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-1_4/manifest.json",
+    "bytes": 37286460,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3796019
+  },
+  "PAT-U2XE-DTG5-VLMC-1_5": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-1_5/manifest.json",
+    "bytes": 37154351,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3779765
+  },
+  "PAT-U2XE-DTG5-VLMC-2_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-2_0/manifest.json",
+    "bytes": 37178266,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-2",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3778974
+  },
+  "PAT-U2XE-DTG5-VLMC-2_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-2_1/manifest.json",
+    "bytes": 56092849,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-2",
+    "duration_s": 890.0,
+    "chunk_count": 15,
+    "largest_chunk_bytes": 3779177
+  },
+  "PAT-U2XE-DTG5-VLMC-2_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-2_2/manifest.json",
+    "bytes": 37190810,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-2",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3779755
+  },
+  "PAT-U2XE-DTG5-VLMC-3_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-3_0/manifest.json",
+    "bytes": 37122319,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-3",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3775689
+  },
+  "PAT-U2XE-DTG5-VLMC-3_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-3_2/manifest.json",
+    "bytes": 37165440,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-3",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3781402
+  },
+  "PAT-U2XE-DTG5-VLMC-3_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-3_3/manifest.json",
+    "bytes": 37142079,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-3",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3779783
+  },
+  "PAT-U2XE-DTG5-VLMC-4_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-4_0/manifest.json",
+    "bytes": 56114472,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-4",
+    "duration_s": 890.0,
+    "chunk_count": 15,
+    "largest_chunk_bytes": 3782377
+  },
+  "PAT-U2XE-DTG5-VLMC-4_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-4_1/manifest.json",
+    "bytes": 37154674,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-4",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3777177
+  },
+  "PAT-U2XE-DTG5-VLMC-4_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-4_2/manifest.json",
+    "bytes": 37138357,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-4",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3777991
+  },
+  "PAT-U2XE-DTG5-VLMC-4_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-U2XE-DTG5-VLMC-4_3/manifest.json",
+    "bytes": 21430086,
+    "patient_id": "PAT-U2XE-DTG5-VLMC-4",
+    "duration_s": 340.0,
+    "chunk_count": 6,
+    "largest_chunk_bytes": 3792472
+  },
+  "PAT-UDNL-OAGE-QCBN_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-UDNL-OAGE-QCBN_0/manifest.json",
+    "bytes": 37145568,
+    "patient_id": "PAT-UDNL-OAGE-QCBN",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3776352
+  },
+  "PAT-UDNL-OAGE-QCBN_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-UDNL-OAGE-QCBN_1/manifest.json",
+    "bytes": 37162590,
+    "patient_id": "PAT-UDNL-OAGE-QCBN",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3776771
+  },
+  "PAT-UDNL-OAGE-QCBN_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-UDNL-OAGE-QCBN_2/manifest.json",
+    "bytes": 37167003,
+    "patient_id": "PAT-UDNL-OAGE-QCBN",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3778840
+  },
+  "PAT-UDNL-OAGE-QCBN_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-UDNL-OAGE-QCBN_3/manifest.json",
+    "bytes": 37172280,
+    "patient_id": "PAT-UDNL-OAGE-QCBN",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3780737
+  },
+  "PAT-VAIA-WVUX-UVZU-1_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-VAIA-WVUX-UVZU-1_0/manifest.json",
+    "bytes": 37141290,
+    "patient_id": "PAT-VAIA-WVUX-UVZU-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3775578
+  },
+  "PAT-VAIA-WVUX-UVZU-1_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-VAIA-WVUX-UVZU-1_1/manifest.json",
+    "bytes": 37128639,
+    "patient_id": "PAT-VAIA-WVUX-UVZU-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3776426
+  },
+  "PAT-VAIA-WVUX-UVZU-1_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-VAIA-WVUX-UVZU-1_2/manifest.json",
+    "bytes": 37129565,
+    "patient_id": "PAT-VAIA-WVUX-UVZU-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3775487
+  },
+  "PAT-VAIA-WVUX-UVZU-1_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-VAIA-WVUX-UVZU-1_3/manifest.json",
+    "bytes": 37146043,
+    "patient_id": "PAT-VAIA-WVUX-UVZU-1",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3776170
+  },
+  "PAT-VAIA-WVUX-UVZU_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-VAIA-WVUX-UVZU_0/manifest.json",
+    "bytes": 37144987,
+    "patient_id": "PAT-VAIA-WVUX-UVZU",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3778026
+  },
+  "PAT-VAIA-WVUX-UVZU_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-VAIA-WVUX-UVZU_1/manifest.json",
+    "bytes": 37176516,
+    "patient_id": "PAT-VAIA-WVUX-UVZU",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3777778
+  },
+  "PAT-VAIA-WVUX-UVZU_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-VAIA-WVUX-UVZU_2/manifest.json",
+    "bytes": 37178604,
+    "patient_id": "PAT-VAIA-WVUX-UVZU",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3778011
+  },
+  "PAT-VSYQ-2K6W-INWV_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-VSYQ-2K6W-INWV_0/manifest.json",
+    "bytes": 37224970,
+    "patient_id": "PAT-VSYQ-2K6W-INWV",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3783622
+  },
+  "PAT-VSYQ-2K6W-INWV_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-VSYQ-2K6W-INWV_1/manifest.json",
+    "bytes": 37242561,
+    "patient_id": "PAT-VSYQ-2K6W-INWV",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3785799
+  },
+  "PAT-VSYQ-2K6W-INWV_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-VSYQ-2K6W-INWV_2/manifest.json",
+    "bytes": 37239463,
+    "patient_id": "PAT-VSYQ-2K6W-INWV",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3785933
+  },
+  "PAT-WBWF-ZGQO-6M7J_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-WBWF-ZGQO-6M7J_0/manifest.json",
+    "bytes": 37100347,
+    "patient_id": "PAT-WBWF-ZGQO-6M7J",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3772316
+  },
+  "PAT-WBWF-ZGQO-6M7J_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-WBWF-ZGQO-6M7J_1/manifest.json",
+    "bytes": 37092393,
+    "patient_id": "PAT-WBWF-ZGQO-6M7J",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3769527
+  },
+  "PAT-WBWF-ZGQO-6M7J_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-WBWF-ZGQO-6M7J_2/manifest.json",
+    "bytes": 37100317,
+    "patient_id": "PAT-WBWF-ZGQO-6M7J",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3771172
+  },
+  "PAT-WBWF-ZGQO-6M7J_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-WBWF-ZGQO-6M7J_3/manifest.json",
+    "bytes": 37088285,
+    "patient_id": "PAT-WBWF-ZGQO-6M7J",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3770073
+  },
+  "PAT-WYZL-FSVK-ZHG7_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-WYZL-FSVK-ZHG7_0/manifest.json",
+    "bytes": 37189862,
+    "patient_id": "PAT-WYZL-FSVK-ZHG7",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3780289
+  },
+  "PAT-WYZL-FSVK-ZHG7_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-WYZL-FSVK-ZHG7_1/manifest.json",
+    "bytes": 37144146,
+    "patient_id": "PAT-WYZL-FSVK-ZHG7",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3775019
+  },
+  "PAT-WYZL-FSVK-ZHG7_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-WYZL-FSVK-ZHG7_2/manifest.json",
+    "bytes": 56081705,
+    "patient_id": "PAT-WYZL-FSVK-ZHG7",
+    "duration_s": 890.0,
+    "chunk_count": 15,
+    "largest_chunk_bytes": 3779394
+  },
+  "PAT-WYZL-FSVK-ZHG7_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-WYZL-FSVK-ZHG7_3/manifest.json",
+    "bytes": 62352086,
+    "patient_id": "PAT-WYZL-FSVK-ZHG7",
+    "duration_s": 990.0,
+    "chunk_count": 17,
+    "largest_chunk_bytes": 3780328
+  },
+  "PAT-WYZL-FSVK-ZHG7_4": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-WYZL-FSVK-ZHG7_4/manifest.json",
+    "bytes": 56007071,
+    "patient_id": "PAT-WYZL-FSVK-ZHG7",
+    "duration_s": 890.0,
+    "chunk_count": 15,
+    "largest_chunk_bytes": 3773585
+  },
+  "PAT-YSBP-5QCF-N4LE_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-YSBP-5QCF-N4LE_0/manifest.json",
+    "bytes": 37156337,
+    "patient_id": "PAT-YSBP-5QCF-N4LE",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3776543
+  },
+  "PAT-YSBP-5QCF-N4LE_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-YSBP-5QCF-N4LE_1/manifest.json",
+    "bytes": 37158576,
+    "patient_id": "PAT-YSBP-5QCF-N4LE",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3776480
+  },
+  "PAT-YSBP-5QCF-N4LE_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-YSBP-5QCF-N4LE_2/manifest.json",
+    "bytes": 37151053,
+    "patient_id": "PAT-YSBP-5QCF-N4LE",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3776271
+  },
+  "PAT-YSBP-5QCF-N4LE_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-YSBP-5QCF-N4LE_3/manifest.json",
+    "bytes": 37127892,
+    "patient_id": "PAT-YSBP-5QCF-N4LE",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3773610
+  },
+  "PAT-ZF5A-BYWS-PKMO_0": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-ZF5A-BYWS-PKMO_0/manifest.json",
+    "bytes": 37177030,
+    "patient_id": "PAT-ZF5A-BYWS-PKMO",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3780116
+  },
+  "PAT-ZF5A-BYWS-PKMO_1": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-ZF5A-BYWS-PKMO_1/manifest.json",
+    "bytes": 37180989,
+    "patient_id": "PAT-ZF5A-BYWS-PKMO",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3778472
+  },
+  "PAT-ZF5A-BYWS-PKMO_2": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-ZF5A-BYWS-PKMO_2/manifest.json",
+    "bytes": 37178815,
+    "patient_id": "PAT-ZF5A-BYWS-PKMO",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3778327
+  },
+  "PAT-ZF5A-BYWS-PKMO_3": {
+    "viewer_payload_storage_path": "exams/payloads/PAT-ZF5A-BYWS-PKMO_3/manifest.json",
+    "bytes": 37178779,
+    "patient_id": "PAT-ZF5A-BYWS-PKMO",
+    "duration_s": 590.0,
+    "chunk_count": 10,
+    "largest_chunk_bytes": 3779520
+  }
+}

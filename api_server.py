@@ -26,6 +26,7 @@ LABEL_COLORS = {
     "seizure": "#F44336",
     "other": "#9E9E9E",
 }
+DEFAULT_CHUNK_SAMPLES = 100_000
 
 
 def load_artifacts():
@@ -206,6 +207,48 @@ def exam_payload(exam_id: str, target_sfreq: float = TARGET_SFREQ):
     }
 
 
+def chunk_name(index: int) -> str:
+    return f"{index:04d}.json"
+
+
+def build_chunked_exam_payload(exam_id: str, target_sfreq: float = TARGET_SFREQ, chunk_samples: int = DEFAULT_CHUNK_SAMPLES):
+    payload = exam_payload(exam_id, target_sfreq=target_sfreq)
+    if payload is None:
+        return None
+
+    raw_ds = payload.pop("rawDs")
+    total_samples = len(raw_ds[0]) if raw_ds else 0
+    chunk_samples = max(1, int(chunk_samples))
+    raw_chunks = []
+
+    for chunk_index, start in enumerate(range(0, total_samples, chunk_samples)):
+        end = min(total_samples, start + chunk_samples)
+        chunk_raw = [channel[start:end] for channel in raw_ds]
+        raw_chunks.append({
+            "index": chunk_index,
+            "path": f"chunks/{chunk_name(chunk_index)}",
+            "start_sample": start,
+            "end_sample": end,
+            "samples": end - start,
+            "t0": start / payload["dsFreq"] if payload["dsFreq"] else 0.0,
+            "t1": end / payload["dsFreq"] if payload["dsFreq"] else 0.0,
+            "rawDs": chunk_raw,
+        })
+
+    manifest = {
+        **payload,
+        "format": "chunked-v1",
+        "chunked": True,
+        "sample_count": total_samples,
+        "chunk_samples": chunk_samples,
+        "chunks": [
+            {key: value for key, value in chunk.items() if key != "rawDs"}
+            for chunk in raw_chunks
+        ],
+    }
+    return {"manifest": manifest, "chunks": raw_chunks}
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(VIEWER_DIR), **kwargs)
@@ -217,11 +260,50 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/exam":
             exam_id = urllib.parse.parse_qs(parsed.query).get("id", [None])[0]
+            exported = build_chunked_exam_payload(exam_id) if exam_id else None
+            payload = exported["manifest"] if exported else None
+            if payload is None:
+                self.send_error(404, "Exam not found")
+                return
+            self.respond_json(payload)
+            return
+        if parsed.path == "/api/exam-full":
+            exam_id = urllib.parse.parse_qs(parsed.query).get("id", [None])[0]
             payload = exam_payload(exam_id) if exam_id else None
             if payload is None:
                 self.send_error(404, "Exam not found")
                 return
             self.respond_json(payload)
+            return
+        if parsed.path == "/api/exam-manifest":
+            query = urllib.parse.parse_qs(parsed.query)
+            exam_id = query.get("id", [None])[0]
+            chunk_samples = int(query.get("chunk_samples", [DEFAULT_CHUNK_SAMPLES])[0])
+            payload = build_chunked_exam_payload(exam_id, chunk_samples=chunk_samples) if exam_id else None
+            if payload is None:
+                self.send_error(404, "Exam not found")
+                return
+            self.respond_json(payload["manifest"])
+            return
+        if parsed.path == "/api/exam-chunk":
+            query = urllib.parse.parse_qs(parsed.query)
+            exam_id = query.get("id", [None])[0]
+            chunk_index_raw = query.get("chunk", [None])[0]
+            chunk_samples = int(query.get("chunk_samples", [DEFAULT_CHUNK_SAMPLES])[0])
+            if exam_id is None or chunk_index_raw is None:
+                self.send_error(400, "Missing exam id or chunk index")
+                return
+            payload = build_chunked_exam_payload(exam_id, chunk_samples=chunk_samples)
+            if payload is None:
+                self.send_error(404, "Exam not found")
+                return
+            try:
+                chunk_index = int(str(chunk_index_raw).replace(".json", ""))
+                chunk = payload["chunks"][chunk_index]
+            except (ValueError, IndexError):
+                self.send_error(404, "Chunk not found")
+                return
+            self.respond_json(chunk)
             return
         if parsed.path == "/":
             self.path = "/index.html"

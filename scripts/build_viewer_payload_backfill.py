@@ -25,6 +25,11 @@ def main():
         help="Path to the export index.json created by export_viewer_payloads.py",
     )
     parser.add_argument(
+        "--chunked",
+        action="store_true",
+        help="Treat the export index as chunked and point metadata to manifest.json paths.",
+    )
+    parser.add_argument(
         "--base",
         required=True,
         help="Base public URL or storage path prefix where the payload JSON files will live.",
@@ -70,14 +75,20 @@ def main():
     ]
 
     for exam_id, item in sorted(index.items()):
-        filename = item["path"]
+        if args.chunked:
+            filename = item.get("manifest_path") or item.get("path") or f"{exam_id}/manifest.json"
+        else:
+            filename = item["path"]
         ref = build_payload_reference(args.base, filename, args.mode)
         mapping[exam_id] = {
             field_name: ref,
-            "bytes": item.get("bytes"),
+            "bytes": item.get("bytes_total", item.get("bytes")),
             "patient_id": item.get("patient_id"),
             "duration_s": item.get("duration_s"),
         }
+        if args.chunked:
+            mapping[exam_id]["chunk_count"] = item.get("chunk_count")
+            mapping[exam_id]["largest_chunk_bytes"] = item.get("largest_chunk_bytes")
         sql_lines.append(
             "update public.exams "
             f"set metadata = coalesce(metadata, '{{}}'::jsonb) || jsonb_build_object({sql_literal(field_name)}, {sql_literal(ref)}) "

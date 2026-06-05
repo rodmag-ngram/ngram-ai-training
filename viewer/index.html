@@ -3640,12 +3640,16 @@ async function loadExamFromApi() {
 
     activateStep(1);
     bar.style.width = '35%';
-    status.textContent = 'Building windows and tracks…';
+    status.textContent = payload?.chunked ? 'Loading signal chunks…' : 'Building windows and tracks…';
+
+    const rawDs = payload?.chunked
+      ? await loadChunkedRawDs(payload, requestHeaders, status, bar)
+      : payload.rawDs.map(ch => Float32Array.from(ch));
 
     edfData = {
       channels: payload.channels,
       duration: payload.duration,
-      rawDs: payload.rawDs.map(ch => Float32Array.from(ch)),
+      rawDs,
       dsFreq: payload.dsFreq,
       sfreq: payload.sfreq,
     };
@@ -3670,6 +3674,50 @@ async function loadExamFromApi() {
     alert(lines.join('\n'));
     resetToUpload();
   }
+}
+
+async function loadChunkedRawDs(payload, requestHeaders, status, bar) {
+  const chunks = Array.isArray(payload?.chunks) ? payload.chunks : [];
+  const channels = Array.isArray(payload?.channels) ? payload.channels : [];
+  const dsFreq = Number(payload?.dsFreq || 0);
+  const inferredSamples = chunks.reduce((maxEnd, chunkMeta = {}) => {
+    const explicitEnd = Number(chunkMeta.end_sample);
+    if (Number.isFinite(explicitEnd) && explicitEnd > 0) return Math.max(maxEnd, explicitEnd);
+    const t1 = Number(chunkMeta.t1 || 0);
+    const samples = Number(chunkMeta.samples || 0);
+    const derivedEnd = samples > 0
+      ? Math.round((Number(chunkMeta.t0 || 0) * dsFreq) + samples)
+      : Math.round(t1 * dsFreq);
+    return Math.max(maxEnd, derivedEnd);
+  }, 0);
+  const totalSamples = Number(payload?.sample_count || inferredSamples || 0);
+  const result = channels.map(() => new Float32Array(totalSamples));
+
+  for (let i = 0; i < chunks.length; i += 1) {
+    const chunkMeta = chunks[i] || {};
+    const chunkRef = chunkMeta.path?.split('/').pop() || `${String(i).padStart(4, '0')}.json`;
+    status.textContent = `Loading signal chunk ${i + 1}/${chunks.length}…`;
+    bar.style.width = `${35 + Math.round(((i + 1) / Math.max(chunks.length, 1)) * 20)}%`;
+
+    const res = await fetch(
+      `/api/exam-chunk?id=${encodeURIComponent(selectedExamId)}&chunk=${encodeURIComponent(chunkRef)}`,
+      { headers: requestHeaders },
+    );
+    const chunk = await res.json();
+    if (!res.ok) {
+      throw new Error(chunk?.error || `Failed to load chunk ${chunkRef}.`);
+    }
+
+    const start = Number.isFinite(Number(chunk.start_sample))
+      ? Number(chunk.start_sample)
+      : Math.round(Number(chunk.t0 || 0) * dsFreq);
+    const rawChunk = Array.isArray(chunk.rawDs) ? chunk.rawDs : [];
+    rawChunk.forEach((channelData, channelIndex) => {
+      result[channelIndex].set(Float32Array.from(channelData), start);
+    });
+  }
+
+  return result;
 }
 
 function finishLoading() {

@@ -233,3 +233,68 @@ The next best move is:
 4. then convert `api_server.py` into production endpoints
 
 That gives us a safe checkpoint before the bigger backend migration.
+## Chunked Rollout Checklist
+
+Use this when rolling out the chunked viewer payload flow to production.
+
+### 1. Upload the generated payload tree
+
+Local source folder:
+
+`/Users/rodmag/Documents/eeg-ml/viewer_payload_exports_chunked`
+
+Upload it into the viewer payload bucket preserving this layout:
+
+`exams/payloads/<exam_id>/manifest.json`
+`exams/payloads/<exam_id>/chunks/0000.json`
+
+Important:
+
+- Do not flatten the directory tree.
+- Do not point the database at chunk files.
+- The database must point to each exam's `manifest.json`.
+
+### 2. Backfill the database references
+
+Generated artifacts in this worktree:
+
+- `/Users/rodmag/.codex/worktrees/83e9/eeg-ml/viewer_payload_exports_chunked_backfill.sql`
+- `/Users/rodmag/.codex/worktrees/83e9/eeg-ml/viewer_payload_exports_chunked_backfill.json`
+
+Field to update:
+
+`public.exams.metadata.viewer_payload_storage_path`
+
+Example value:
+
+`exams/payloads/PAT-CPJF-CXOZ-3JQ2-1_1/manifest.json`
+
+### 3. Deploy the site code
+
+Files required for the chunked flow:
+
+- `viewer/index.html`
+- `netlify/functions/exam.mts`
+- `netlify/functions/exam-chunk.mts`
+
+The existing redirect rule in `netlify.toml` already covers `/api/exam-chunk`.
+
+### 4. Smoke test one exam from the exam list
+
+After upload, backfill, and deploy:
+
+1. Open the site.
+2. Log in normally.
+3. Pick an exam that already has `viewer_payload_storage_path`.
+4. Confirm it opens from the exam list.
+5. Confirm the network flow is:
+   - `/api/exam?id=...`
+   - `/api/exam-chunk?id=...&chunk=0000.json`
+   - additional chunk requests as needed
+
+### 5. Expected batch facts
+
+- Exams exported: `111`
+- Chunk files exported: `1782`
+- Largest chunk found: `3,798,529 bytes`
+- Total local folder size: about `6.1 GB`
