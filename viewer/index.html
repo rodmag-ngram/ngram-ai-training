@@ -1146,6 +1146,14 @@ body.viewer-active #toolbar .sep {
   height: 36px;
   opacity: 0.38;
 }
+.loading-brain img {
+  width: 78px;
+  height: 78px;
+  object-fit: contain;
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
+}
 .loading-pulse {
   position: absolute;
   inset: -8px;
@@ -1897,9 +1905,7 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
       <div class="loading-brain">
         <div class="loading-pulse"></div>
         <div class="loading-pulse"></div>
-        <svg viewBox="0 0 307 62" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Neurogram">
-          <path d="M0 31C26.9951 31 26.9951 31 53.9901 31C80.9852 31 80.9852 31 107.98 31C134.975 31 134.975 61 161.97 61C188.965 61 188.965 1 215.96 1C242.955 1 242.955 31 269.95 31C296.945 31 296.945 31 303.694 31" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/>
-        </svg>
+        <img src="./icone_neurogram.svg" alt="Neurogram" />
       </div>
 
       <div class="loading-title">Processing EEG…</div>
