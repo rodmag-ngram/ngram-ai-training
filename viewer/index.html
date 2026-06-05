@@ -265,10 +265,10 @@ body.viewer-active .toolbar-account {
 }
 body.viewer-active #toolbar-viewer {
   width: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: start;
-  gap: 12px;
+  gap: 12px 16px;
 }
 .toolbar-viewer-spacer {
   flex: 1 1 64px;
@@ -280,31 +280,21 @@ body.viewer-active .toolbar-viewer-spacer {
 #toolbar-viewer .toolbar-group--viewer-left,
 #toolbar-viewer .toolbar-group--viewer-middle {
   flex-wrap: wrap;
+  flex: 1 1 420px;
 }
 #toolbar-viewer .toolbar-group--viewer-right {
-  justify-self: end;
   flex-wrap: wrap;
+  flex: 1 1 100%;
   justify-content: flex-end;
+  max-width: 100%;
+  margin-left: 0;
+  padding-left: 8px;
 }
 body.viewer-active #toolbar .sep {
   align-self: center;
 }
-@media (max-width: 1500px) {
-  body.viewer-active #toolbar-viewer {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-  body.viewer-active #toolbar-viewer .toolbar-group--viewer-right {
-    grid-column: 1 / -1;
-    justify-self: stretch;
-    justify-content: flex-end;
-  }
-}
 @media (max-width: 1100px) {
-  body.viewer-active #toolbar-viewer {
-    grid-template-columns: 1fr;
-  }
   body.viewer-active #toolbar-viewer .toolbar-group--viewer-right {
-    justify-self: start;
     justify-content: flex-start;
   }
 }
@@ -1660,14 +1650,12 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
   </span>
   <div class="sep"></div>
 
-  <!-- Upload toolbar (always visible) -->
-  <div id="toolbar-upload" style="display:flex;align-items:center;gap:6px;">
-    <span class="tb-label">Exame</span>
-    <select class="tb-select" id="sel-exam" style="width:260px">
+  <!-- Hidden legacy upload controls kept only for compatibility -->
+  <div id="toolbar-upload" style="display:none;align-items:center;gap:6px;">
+    <select class="tb-select" id="sel-exam" style="display:none;width:260px">
       <option value="">Choose an exam…</option>
     </select>
-    <span class="tb-label">Arquivo</span>
-    <button class="tb-btn" id="btn-choose" onclick="document.getElementById('file-input').click()">Select .edf</button>
+    <button class="tb-btn" id="btn-choose" type="button" style="display:none;" onclick="document.getElementById('file-input').click()">Select .edf</button>
   </div>
 
   <!-- Viewer toolbar (shown after analysis) -->
@@ -1874,12 +1862,11 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
       </div>
 
       <div class="upload-sub">
-        Drag an <strong>.edf</strong> file here or click to select one.
-        The AI classifies each 10-second window and compares the
-        results with clinician annotations.
+        Choose a new <strong>.edf</strong> file from your computer.
+        The system will receive it, queue the backend processing, and then release the exam in the worklist when it is ready.
       </div>
 
-      <select class="tb-select" id="upload-exam-select" style="display:none;width:100%;max-width:420px;height:42px;border-radius:14px;background-color:#fff;">
+      <select class="tb-select" id="upload-exam-select" style="display:none;width:100%;max-width:420px;height:42px;border-radius:14px;background-color:#fff;" aria-hidden="true" tabindex="-1">
         <option value="">Or choose a saved exam…</option>
       </select>
 
@@ -1894,7 +1881,7 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
           <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/>
           <path d="M7 10l2.5 2.5L14 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Attach EDF
+        Choose EDF From Computer
       </button>
       <button class="btn-primary" id="btn-analyze" disabled onclick="startAnalysis()" style="display:none;">
         Analyze
@@ -2313,10 +2300,10 @@ dropZone.addEventListener('click', e => {
   fileInput.click();
 });
 
-document.getElementById('btn-analyze').addEventListener('click', e => e.stopPropagation());
-document.getElementById('btn-choose').addEventListener('click', e => e.stopPropagation());
-document.getElementById('sel-exam').addEventListener('click', e => e.stopPropagation());
-document.getElementById('upload-exam-select').addEventListener('click', e => e.stopPropagation());
+document.getElementById('btn-analyze')?.addEventListener('click', e => e.stopPropagation());
+document.getElementById('btn-choose')?.addEventListener('click', e => e.stopPropagation());
+document.getElementById('sel-exam')?.addEventListener('click', e => e.stopPropagation());
+document.getElementById('upload-exam-select')?.addEventListener('click', e => e.stopPropagation());
 document.getElementById('sel-scale').addEventListener('click', e => e.stopPropagation());
 document.getElementById('sel-low').addEventListener('click', e => e.stopPropagation());
 document.getElementById('sel-high').addEventListener('click', e => e.stopPropagation());
