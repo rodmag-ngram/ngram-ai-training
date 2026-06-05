@@ -2651,6 +2651,13 @@ function setReviewSaveStatus(message, isError = false) {
   el.style.color = isError ? '#C64B38' : 'var(--text-2)';
 }
 
+function normalizeOptionalReviewValue(value) {
+  if (value === null || value === undefined) return null;
+  const normalized = String(value).trim();
+  if (!normalized || normalized === '—' || normalized === '-') return null;
+  return normalized;
+}
+
 function computeReviewFinalLabel() {
   const counts = {};
   for (const ann of manualAnnotations) {
@@ -2665,6 +2672,8 @@ function computeReviewFinalLabel() {
 function buildCurrentReviewPayload(status = 'completed') {
   const examCode = selectedExamId || currentFile?.name || null;
   const finalLabel = computeReviewFinalLabel();
+  const observerAgreementLevel = normalizeOptionalReviewValue(examReview.observerAgreementLevel);
+  const overallGrade = normalizeOptionalReviewValue(examReview.overallGrade);
   return {
     exam_id: examCode,
     exported: new Date().toISOString(),
@@ -2674,11 +2683,11 @@ function buildCurrentReviewPayload(status = 'completed') {
     final_label: finalLabel,
     dominant_label: finalLabel,
     observer_agreement: {
-      level: examReview.observerAgreementLevel,
+      level: observerAgreementLevel,
       comment: examReview.observerComment,
     },
     exam_review: {
-      overall_grade: examReview.overallGrade,
+      overall_grade: overallGrade ? Number(overallGrade) : null,
       comment: examReview.overallComment,
     },
     annotations: manualAnnotations.map(ann => ({ ...ann })),
@@ -2743,9 +2752,9 @@ async function persistCurrentReview(status = 'completed', options = {}) {
     exam_id: examRow.id,
     reviewer_id: currentProfile.id,
     review_status: status,
-    observer_agreement_level: examReview.observerAgreementLevel,
+    observer_agreement_level: normalizeOptionalReviewValue(examReview.observerAgreementLevel),
     observer_comment: examReview.observerComment,
-    overall_model_grade: examReview.overallGrade === '-' ? null : Number(examReview.overallGrade),
+    overall_model_grade: normalizeOptionalReviewValue(examReview.overallGrade) ? Number(normalizeOptionalReviewValue(examReview.overallGrade)) : null,
     overall_comment: examReview.overallComment,
     exported_payload: payload,
     completed_at: status === 'completed' ? new Date().toISOString() : null,
