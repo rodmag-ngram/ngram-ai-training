@@ -3423,6 +3423,7 @@ async function loadExamFromApi() {
     if (!res.ok) {
       const detailLines = [];
       if (payload?.error) detailLines.push(payload.error);
+      else if (payload?.errorMessage) detailLines.push(payload.errorMessage);
       if (payload?.next_steps?.length) detailLines.push('', 'Next steps:', ...payload.next_steps.map(step => `- ${step}`));
       const message = detailLines.length ? detailLines.join('\n') : 'Failed to load exam analysis.';
       throw new Error(message);

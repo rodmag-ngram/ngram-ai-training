@@ -146,6 +146,7 @@ async function fetchViewerPayload(url: string, access: "public" | "private", for
 export default async (request: Request) => {
   const url = new URL(request.url);
   const examId = url.searchParams.get("id");
+  const forwardedAuthHeader = request.headers.get("authorization");
 
   if (!examId) {
     return new Response(
@@ -160,6 +161,7 @@ export default async (request: Request) => {
   const encodedId = encodeURIComponent(examId);
   const exams = (await supabaseRest(
     `exams?select=id,exam_code,source_file_name,edf_storage_path,metadata&or=(exam_code.eq.${encodedId},source_file_name.eq.${encodedId},id.eq.${encodedId})&limit=1`,
+    forwardedAuthHeader,
   )) as ExamRow[];
 
   const exam = exams[0];
@@ -176,11 +178,11 @@ export default async (request: Request) => {
 
   const aiReviews = (await supabaseRest(
     `exam_ai_reviews?select=exam_id,model_name,model_version,pipeline_version,review_status,summary,predictions&exam_id=eq.${encodeURIComponent(exam.id)}&limit=1`,
+    forwardedAuthHeader,
   )) as AiReviewRow[];
   const aiReview = aiReviews[0] || null;
 
   const payloadLocation = extractPayloadLocation(exam, aiReview);
-  const forwardedAuthHeader = request.headers.get("authorization");
 
   if (payloadLocation) {
     try {
