@@ -1470,6 +1470,20 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
   flex: 1 1 180px;
   width: auto;
 }
+.review-mode-toggle {
+  display: flex;
+  gap: 8px;
+}
+.review-mode-toggle .rp-secondary-btn {
+  min-height: 42px;
+  margin: 0;
+  flex: 1 1 0;
+}
+.review-mode-toggle .rp-secondary-btn.active {
+  background: var(--accent);
+  color: #1f2600;
+  border-color: #BEDB3A;
+}
 .saved-list {
   display: flex;
   flex-direction: column;
@@ -1976,6 +1990,15 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
           <div id="stats-container"></div>
         </div>
 
+        <div class="rp-card" id="review-mode-card" style="display:none;">
+          <h3>Review mode</h3>
+          <div class="rp-help">Managers can keep a separate adjudication without overwriting the primary physician review.</div>
+          <div class="review-mode-toggle">
+            <button class="rp-secondary-btn" id="btn-review-mode-primary" type="button">Primary review</button>
+            <button class="rp-secondary-btn" id="btn-review-mode-manager" type="button">Manager adjudication</button>
+          </div>
+        </div>
+
         <div class="rp-card">
           <h3>Selected segment</h3>
           <div class="window-pill" id="annotation-window-pill">0:00 – 0:10</div>
@@ -2174,6 +2197,7 @@ const ANNOTATION_TAG_OPTIONS = ['lpd','gpd','lrda','grda','seizure','ied','suppr
 const LATERALIZED_OPTIONS = ['Looks lateralized','Looks generalized','Bilateral','Not sure'];
 let examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
 let currentWindowReview = null;
+let reviewWorkflowMode = 'primary';
 const floatingTooltip = document.getElementById('floating-tooltip');
 let currentAppState = 'auth';
 let pendingUiRestoreState = null;
@@ -2187,6 +2211,23 @@ function resetReviewDraftState() {
   annotationDragClientX = null;
   examReview = { observerAgreementLevel: '—', observerComment: '', overallGrade: '-', overallComment: '' };
   setReviewSaveStatus('');
+}
+
+function canUseManagerAdjudicationMode() {
+  return ['admin', 'manager'].includes(currentProfile?.role);
+}
+
+function getActiveReviewMode() {
+  if (!canUseManagerAdjudicationMode()) return 'primary';
+  return reviewWorkflowMode === 'manager' ? 'manager' : 'primary';
+}
+
+function getCurrentReviewStoragePrefix() {
+  return getActiveReviewMode() === 'manager' ? 'manager-reviews' : 'reviews';
+}
+
+function getDefaultReviewWorkflowMode() {
+  return canUseManagerAdjudicationMode() ? 'manager' : 'primary';
 }
 
 function applyDefaultViewerPreset() {
@@ -2399,6 +2440,34 @@ function updateViewerExamChrome() {
     toggleBtn.setAttribute('title', sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar');
   }
   document.body.classList.toggle('sidebar-collapsed', sidebarCollapsed);
+}
+
+function updateReviewModeControls() {
+  const card = document.getElementById('review-mode-card');
+  const btnPrimary = document.getElementById('btn-review-mode-primary');
+  const btnManager = document.getElementById('btn-review-mode-manager');
+  const saveBtn = document.getElementById('save-review-platform');
+  const saveWindowBtn = document.getElementById('save-window-annotation');
+  const helpBlocks = document.querySelectorAll('#results-panel .rp-help');
+  const mode = getActiveReviewMode();
+
+  if (card) card.style.display = canUseManagerAdjudicationMode() ? '' : 'none';
+  if (btnPrimary) btnPrimary.classList.toggle('active', mode === 'primary');
+  if (btnManager) btnManager.classList.toggle('active', mode === 'manager');
+  if (saveBtn) saveBtn.textContent = mode === 'manager' ? 'Submit manager adjudication' : 'Submit completed review';
+  if (saveWindowBtn) saveWindowBtn.textContent = mode === 'manager' ? 'Save adjudication segment' : 'Save selected segment';
+}
+
+function setReviewWorkflowMode(mode) {
+  reviewWorkflowMode = mode === 'manager' && canUseManagerAdjudicationMode() ? 'manager' : 'primary';
+  applyPersistedReviewForSelectedExam();
+  updateReviewModeControls();
+  refreshAnalysisPanel();
+  refreshSavedAnnotationsList();
+  buildViewer();
+  if (cmpVisible) drawCmp();
+  draw();
+  persistUiState();
 }
 
 function toggleResultsSidebar() {
@@ -3005,6 +3074,7 @@ function buildCurrentReviewPayload(status = 'completed') {
   return {
     exam_id: examCode,
     exported: new Date().toISOString(),
+    review_mode: getActiveReviewMode(),
     reviewer_id: currentProfile?.id || null,
     reviewer_email: currentProfile?.email || currentSession?.user?.email || null,
     review_status: status,
@@ -3045,10 +3115,17 @@ function hydrateReviewStateFromExisting(review) {
   currentWindowReview = null;
 }
 
+function getActiveReviewCollection(examRow) {
+  if (!examRow) return [];
+  return getActiveReviewMode() === 'manager'
+    ? (examRow.exam_manager_reviews || [])
+    : (examRow.exam_human_reviews || []);
+}
+
 function applyPersistedReviewForSelectedExam() {
   const examRow = getSelectedExamRow();
   if (!examRow || !currentProfile?.id) return;
-  const review = (examRow.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile.id);
+  const review = getActiveReviewCollection(examRow).find(item => item.reviewer_id === currentProfile.id);
   if (review) {
     hydrateReviewStateFromExisting(review);
   } else {
@@ -3064,7 +3141,7 @@ async function persistCurrentReview(status = 'completed', options = {}) {
 
   const examCode = examRow.exam_code || examRow.source_file_name || selectedExamId;
   const payload = buildCurrentReviewPayload(status);
-  const storagePath = `reviews/${getCurrentReviewerFolder()}/${examCode}.json`;
+  const storagePath = `${getCurrentReviewStoragePrefix()}/${getCurrentReviewerFolder()}/${examCode}.json`;
   payload.storage_path = `${VIEWER_PAYLOAD_BUCKET}/${storagePath}`;
 
   setReviewSaveStatus(silent ? 'Saving draft…' : 'Saving review…');
@@ -3075,10 +3152,14 @@ async function persistCurrentReview(status = 'completed', options = {}) {
     .upload(storagePath, reviewBlob, { contentType: 'application/json', upsert: true });
   if (uploadError) throw new Error(`Could not upload reviewer JSON: ${uploadError.message}`);
 
-  const existingReview = (examRow.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile.id) || null;
+  const mode = getActiveReviewMode();
+  const reviewTable = mode === 'manager' ? 'exam_manager_reviews' : 'exam_human_reviews';
+  const annotationTable = mode === 'manager' ? 'exam_manager_review_annotations' : 'review_annotations';
+  const reviewerColumn = mode === 'manager' ? 'manager_id' : 'reviewer_id';
+  const existingReview = getActiveReviewCollection(examRow).find(item => item.reviewer_id === currentProfile.id) || null;
   const reviewRecord = {
     exam_id: examRow.id,
-    reviewer_id: currentProfile.id,
+    [reviewerColumn]: currentProfile.id,
     review_status: status,
     observer_agreement_level: normalizeOptionalReviewValue(examReview.observerAgreementLevel),
     observer_comment: examReview.observerComment,
@@ -3090,15 +3171,15 @@ async function persistCurrentReview(status = 'completed', options = {}) {
 
   let reviewId = existingReview?.id || null;
   if (reviewId) {
-    const { error } = await supabaseClient.from('exam_human_reviews').update(reviewRecord).eq('id', reviewId);
+    const { error } = await supabaseClient.from(reviewTable).update(reviewRecord).eq('id', reviewId);
     if (error) throw new Error(`Could not update review: ${error.message}`);
   } else {
-    const { data, error } = await supabaseClient.from('exam_human_reviews').insert(reviewRecord).select('id').single();
+    const { data, error } = await supabaseClient.from(reviewTable).insert(reviewRecord).select('id').single();
     if (error) throw new Error(`Could not create review: ${error.message}`);
     reviewId = data.id;
   }
 
-  const { error: deleteError } = await supabaseClient.from('review_annotations').delete().eq('review_id', reviewId);
+  const { error: deleteError } = await supabaseClient.from(annotationTable).delete().eq('review_id', reviewId);
   if (deleteError) throw new Error(`Could not refresh annotations: ${deleteError.message}`);
 
   if (manualAnnotations.length) {
@@ -3116,7 +3197,7 @@ async function persistCurrentReview(status = 'completed', options = {}) {
       comment: ann.comment || null,
       extra_payload: { id: ann.id },
     }));
-    const { error: insertError } = await supabaseClient.from('review_annotations').insert(rows);
+    const { error: insertError } = await supabaseClient.from(annotationTable).insert(rows);
     if (insertError) throw new Error(`Could not save annotations: ${insertError.message}`);
   }
 
@@ -3607,6 +3688,11 @@ async function loadSupabaseExams() {
     .select('id, exam_id, reviewer_id, review_status, observer_agreement_level, observer_comment, overall_model_grade, overall_comment, exported_payload, completed_at');
   if (humanError) throw new Error(`exam_human_reviews: ${humanError.message}`);
 
+  const { data: managerRows, error: managerError } = await supabaseClient
+    .from('exam_manager_reviews')
+    .select('id, exam_id, manager_id, review_status, observer_agreement_level, observer_comment, overall_model_grade, overall_comment, exported_payload, completed_at');
+  if (managerError) throw new Error(`exam_manager_reviews: ${managerError.message}`);
+
   const { data: profileRows, error: profileError } = await supabaseClient
     .from('profiles')
     .select('id, full_name, email');
@@ -3635,6 +3721,17 @@ async function loadSupabaseExams() {
     });
     humanByExam.set(row.exam_id, list);
   });
+  const managerByExam = new Map();
+  (managerRows || []).forEach(row => {
+    const reviewerId = row.manager_id;
+    const list = managerByExam.get(row.exam_id) || [];
+    list.push({
+      ...row,
+      reviewer_id: reviewerId,
+      profiles: profilesById.get(reviewerId) || (reviewerId === currentProfile?.id ? currentProfile : null)
+    });
+    managerByExam.set(row.exam_id, list);
+  });
 
   supabaseExamRows = (examsRows || [])
     .filter(row => {
@@ -3647,7 +3744,8 @@ async function loadSupabaseExams() {
       ...row,
       exam_ai_reviews: aiByExam.get(row.id) ? [aiByExam.get(row.id)] : [],
       exam_assignments: assignmentsByExam.get(row.id) || [],
-      exam_human_reviews: humanByExam.get(row.id) || []
+      exam_human_reviews: humanByExam.get(row.id) || [],
+      exam_manager_reviews: managerByExam.get(row.id) || []
     }));
 
   if (selectedExamId && loadedFromApi && predictions?.length) {
@@ -3725,6 +3823,10 @@ function setToolbarUser(profile, email) {
   if (saveBtn) saveBtn.style.display = canExportJson() ? 'flex' : 'none';
   const aiBtn = document.getElementById('btn-ai-view');
   if (aiBtn) aiBtn.style.display = canAccessAiPanel() ? 'inline-flex' : 'none';
+  if (reviewWorkflowMode !== 'manager' && reviewWorkflowMode !== 'primary') {
+    reviewWorkflowMode = getDefaultReviewWorkflowMode();
+  }
+  updateReviewModeControls();
 }
 
 function fillProfileModal() {
@@ -3870,6 +3972,7 @@ function persistUiState() {
       montageMode,
       cmpVisible,
       sidebarCollapsed,
+      reviewWorkflowMode,
     };
     window.localStorage.setItem(UI_STATE_STORAGE_KEY, JSON.stringify(payload));
   } catch (error) {
@@ -3897,6 +4000,7 @@ function applyRestoredViewerState(saved) {
   windowSize = Number(saved.windowSize) || 10;
   cmpVisible = Boolean(saved.cmpVisible);
   sidebarCollapsed = Boolean(saved.sidebarCollapsed);
+  reviewWorkflowMode = saved.reviewWorkflowMode === 'manager' ? 'manager' : 'primary';
 
   document.getElementById('sel-scale').value = String(scale);
   document.getElementById('sel-low').value = String(lowCutHz);
@@ -3914,6 +4018,7 @@ function applyRestoredViewerState(saved) {
     setTimeout(() => { resizeCmp(); drawCmp(); }, 30);
   }
   updateViewerExamChrome();
+  updateReviewModeControls();
 }
 
 function showState(id) {
@@ -5336,6 +5441,9 @@ document.getElementById('save-review-platform').addEventListener('click', async 
     setReviewSaveStatus(error.message || 'Could not save review.', true);
   }
 });
+
+document.getElementById('btn-review-mode-primary')?.addEventListener('click', () => setReviewWorkflowMode('primary'));
+document.getElementById('btn-review-mode-manager')?.addEventListener('click', () => setReviewWorkflowMode('manager'));
 
 document.getElementById('export-saved-annotations').addEventListener('click', () => {
   const payload = {
