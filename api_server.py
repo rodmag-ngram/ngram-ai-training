@@ -15,7 +15,7 @@ MEGA_FEATURES_V1 = ROOT / "mega_features_v1.pkl"
 MEGA_MODEL_PKL = ROOT / "model_mega.pkl"
 MODEL_PKL = ROOT / "model.pkl"
 
-TARGET_SFREQ = 200.0
+TARGET_SFREQ = 256.0
 RATERS = ["elaine", "amanda", "marina"]
 LABEL_COLORS = {
     "normal": "#4CAF50",
@@ -83,8 +83,11 @@ def downsample(signal: np.ndarray, orig_sfreq: float, target_sfreq: float = TARG
 
     trimmed = signal[:, :usable]
     reshaped = trimmed.reshape(signal.shape[0], -1, factor)
-    averaged = reshaped.mean(axis=2)
-    return averaged, orig_sfreq / factor
+    mean = reshaped.mean(axis=2, keepdims=True)
+    offsets = np.abs(reshaped - mean)
+    peak_idx = offsets.argmax(axis=2)
+    selected = np.take_along_axis(reshaped, peak_idx[..., None], axis=2).squeeze(axis=2)
+    return selected, orig_sfreq / factor
 
 
 def merge_segments(items):

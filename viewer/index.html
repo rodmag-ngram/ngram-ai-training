@@ -4585,17 +4585,24 @@ function parseEDF(buf) {
     }
   }
 
-  // Downsample to ~200 Hz via averaging (anti-aliased) for rendering
-  // Target 200 Hz keeps enough resolution for 70 Hz content and avoids aliasing.
-  const TARGET_DS = 200;
+  // Downsample conservatively for rendering while preserving sharp transients.
+  const TARGET_DS = 256;
   const ds = Math.max(1, Math.floor(sfreq / TARGET_DS));
   const rawDs = raw.map(ch => {
     const out = new Float32Array(Math.floor(ch.length / ds));
     for (let i = 0; i < out.length; i++) {
-      let sum = 0;
       const base = i * ds;
-      for (let j = 0; j < ds; j++) sum += ch[base + j] || 0;
-      out[i] = sum / ds;
+      let best = ch[base] || 0;
+      let bestAbs = Math.abs(best);
+      for (let j = 1; j < ds; j++) {
+        const sample = ch[base + j] || 0;
+        const sampleAbs = Math.abs(sample);
+        if (sampleAbs > bestAbs) {
+          best = sample;
+          bestAbs = sampleAbs;
+        }
+      }
+      out[i] = best;
     }
     return out;
   });
@@ -5235,8 +5242,7 @@ function draw() {
     for (let si = 0; si < sampleCount; si++) {
       const x = labelW + 4 + (si / Math.max(1, sampleCount - 1)) * (plotW - 8);
       const unclampedY = yCenter - ((raw[si] - mean) * unitFactor) * pixPerUV;
-      const maxOffset = rowH * 0.46;
-      const y = clamp(unclampedY, yCenter - maxOffset, yCenter + maxOffset);
+      const y = clamp(unclampedY, plotTop + 2, plotBottom - 2);
       points.push({ x, y });
     }
     ctx.strokeStyle = traceColor(channel.baseIndex ?? ci);

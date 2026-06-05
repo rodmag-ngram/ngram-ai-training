@@ -30,7 +30,7 @@ def main():
     parser.add_argument(
         "--target-sfreq",
         type=float,
-        default=200.0,
+        default=256.0,
         help="Target sampling frequency for the exported viewer payloads.",
     )
     parser.add_argument(
