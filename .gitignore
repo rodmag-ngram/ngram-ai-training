@@ -40,3 +40,6 @@ viewer/comparison_*.html
 .env
 .env.*
 !.env.example
+
+# Local Netlify folder
+.netlify
