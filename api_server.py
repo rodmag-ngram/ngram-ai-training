@@ -231,6 +231,35 @@ def exam_payload(exam_id: str, target_sfreq: float = TARGET_SFREQ):
         ]
         tracks[rater.capitalize()] = merge_segments(track_items)
 
+    per_label_stats = {}
+    matched_window_count = 0
+    consensus_window_count = 0
+    for ai_label, meta_row in zip(pred_labels, meta_rows):
+        reviewer_counts = Counter(
+            str(meta_row["labels_per_rater"].get(rater, "normal"))
+            for rater in RATERS
+        )
+        consensus_label = None
+        consensus_count = 0
+        if reviewer_counts:
+            consensus_label, consensus_count = reviewer_counts.most_common(1)[0]
+        if not consensus_label or consensus_count < 2:
+            continue
+
+        consensus_window_count += 1
+        label_stats = per_label_stats.setdefault(consensus_label, {
+            "consensus_window_count": 0,
+            "matched_window_count": 0,
+        })
+        label_stats["consensus_window_count"] += 1
+        if str(ai_label) == consensus_label:
+            label_stats["matched_window_count"] += 1
+            matched_window_count += 1
+    accuracy_vs_consensus = (
+        matched_window_count / consensus_window_count
+        if consensus_window_count else None
+    )
+
     return {
         "exam_id": exam_id,
         "model_name": MODEL_NAME,
@@ -242,6 +271,19 @@ def exam_payload(exam_id: str, target_sfreq: float = TARGET_SFREQ):
         "predictions": predictions,
         "tracks": tracks,
         "consensus_counts": dict(Counter(row["label"] for row in rows)),
+        "accuracy_vs_consensus": round(float(accuracy_vs_consensus), 4) if accuracy_vs_consensus is not None else None,
+        "window_metrics": {
+            "consensus_window_count": consensus_window_count,
+            "matched_window_count": matched_window_count,
+            "window_agreement": round(float(accuracy_vs_consensus), 4) if accuracy_vs_consensus is not None else None,
+            "per_label_stats": {
+                label: {
+                    **stats,
+                    "window_agreement": round(stats["matched_window_count"] / stats["consensus_window_count"], 4) if stats["consensus_window_count"] else None,
+                }
+                for label, stats in per_label_stats.items()
+            },
+        },
         "label_colors": LABEL_COLORS,
     }
 

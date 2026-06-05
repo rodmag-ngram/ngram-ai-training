@@ -216,16 +216,16 @@ function buildReviewerSources(payload: any, reviews: HumanReviewRow[], profilesB
     .forEach(review => {
       const key = getReviewerIdentityKey(review, profilesById.get(review.reviewer_id));
       const annotations = Array.isArray(review.exported_payload?.annotations) ? review.exported_payload?.annotations : [];
-      reviewerSources.set(
-        key,
-        annotations
-          .map((annotation: any) => ({
-            t0: Number(annotation?.t0 ?? annotation?.t0_seconds ?? 0),
-            t1: Number(annotation?.t1 ?? annotation?.t1_seconds ?? 0),
-            label: String(annotation?.label || annotation?.primary_label || "normal"),
-          }))
-          .filter((segment: ReviewerSegment) => Number.isFinite(segment.t0) && Number.isFinite(segment.t1) && segment.t1 > segment.t0),
-      );
+      const normalizedAnnotations = annotations
+        .map((annotation: any) => ({
+          t0: Number(annotation?.t0 ?? annotation?.t0_seconds ?? 0),
+          t1: Number(annotation?.t1 ?? annotation?.t1_seconds ?? 0),
+          label: String(annotation?.label || annotation?.primary_label || "normal"),
+        }))
+        .filter((segment: ReviewerSegment) => Number.isFinite(segment.t0) && Number.isFinite(segment.t1) && segment.t1 > segment.t0);
+      if (normalizedAnnotations.length) {
+        reviewerSources.set(key, normalizedAnnotations);
+      }
     });
 
   return reviewerSources;
