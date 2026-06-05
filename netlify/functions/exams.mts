@@ -196,7 +196,8 @@ function buildReviewerSources(payload: any, reviews: HumanReviewRow[], profilesB
   const payloadTracks = payload?.tracks && typeof payload.tracks === "object" ? payload.tracks : {};
 
   Object.entries(payloadTracks).forEach(([name, segments]) => {
-    if (String(name).toLowerCase() === "ai") return;
+    const normalizedName = String(name).toLowerCase();
+    if (normalizedName === "ai" || normalizedName === "consensus") return;
     if (!Array.isArray(segments)) return;
     reviewerSources.set(
       normalizeLegacyReviewerKey(name),
