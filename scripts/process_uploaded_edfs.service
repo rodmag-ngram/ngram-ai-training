@@ -1,0 +1,17 @@
+[Unit]
+Description=Neurogram uploaded EDF processing worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/neurogram/eeg-ml
+EnvironmentFile=/opt/neurogram/eeg-ml/.env
+ExecStart=/opt/neurogram/eeg-ml/scripts/process_uploaded_edfs.sh
+Restart=always
+RestartSec=10
+User=neurogram
+Group=neurogram
+
+[Install]
+WantedBy=multi-user.target
