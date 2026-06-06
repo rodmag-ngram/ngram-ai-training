@@ -1,0 +1,5 @@
+numpy
+scipy
+mne
+scikit-learn
+lightgbm
