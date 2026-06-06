@@ -904,7 +904,7 @@ body.viewer-active #time-lbl {
   font-weight: 700;
 }
 .status-ready { background: #EAF8EA; color: #23713A; }
-.status-processing_ai, .status-in_progress { background: #FFF3DD; color: #8A5A12; }
+.status-processing_ai, .status-in_progress, .status-queued { background: #FFF3DD; color: #8A5A12; }
 .status-uploaded, .status-not_started { background: #EFF2F5; color: #66727E; }
 .status-completed { background: #EAF8EA; color: #23713A; }
 .status-mismatch { background: #FDEDEC; color: #B53A2D; }
@@ -2536,7 +2536,7 @@ async function queueUploadedExam(file) {
       });
     if (aiReviewError) throw new Error(`Could not create AI review row: ${aiReviewError.message}`);
 
-    setUploadFeedback('Upload received. Returning to the worklist…');
+    setUploadFeedback('Upload received. The exam is queued for manual processing. Returning to the worklist…');
     fileInput.value = '';
     filePill.classList.remove('visible');
     pillName.textContent = '—';
@@ -3135,6 +3135,13 @@ function formatAccuracyValue(value) {
   return num.toFixed(3);
 }
 
+function getDisplayExamStatus(row) {
+  const status = String(row?.status || '').toLowerCase() || 'uploaded';
+  const ingestState = String(row?.metadata?.ingest_state || '').toLowerCase();
+  if (status === 'processing_ai' && ingestState === 'queued') return 'queued';
+  return status;
+}
+
 function hideFloatingTooltip() {
   if (!floatingTooltip) return;
   floatingTooltip.classList.remove('visible');
@@ -3396,6 +3403,7 @@ function buildExamListRowModel(row) {
   const myHumanReview = (row.exam_human_reviews || []).find(item => item.reviewer_id === currentProfile?.id);
   const reviewedBy = formatReviewerList(row.exam_assignments || [], row.metadata?.reviewed_by || []);
   const examStatus = String(row.status || '').toLowerCase() || 'uploaded';
+  const displayExamStatus = getDisplayExamStatus(row);
   const payloadPath = getViewerPayloadRelativePath(row?.metadata?.viewer_payload_storage_path);
   const metrics = row.window_metrics || manifestExam?.window_metrics || {};
   const hydrationPending = row._windowMetricsHydrationPending === true;
@@ -3428,6 +3436,7 @@ function buildExamListRowModel(row) {
     patientCode: row.patient_code || '—',
     durationSeconds: Number(row.duration_seconds || manifestExam?.duration_s || 0),
     examStatus,
+    displayExamStatus,
     reviewedBy,
     myReviewStatus: getMyReviewStatus(myHumanReview),
     consensusWindowCount,
@@ -3452,14 +3461,15 @@ function getExamSortValue(item, key) {
       return item.durationSeconds || 0;
     case 'exam_status':
       return {
-        rank: getSortableStatusRank(item.examStatus || 'uploaded', {
+        rank: getSortableStatusRank(item.displayExamStatus || item.examStatus || 'uploaded', {
           uploaded: 5,
+          queued: 10,
           processing_ai: 10,
           ready: 20,
           archived: 30,
           error: 40,
         }),
-        label: item.examStatus || 'uploaded',
+        label: item.displayExamStatus || item.examStatus || 'uploaded',
       };
     case 'reviewed_by':
       return item.reviewedBy === '—' ? '' : item.reviewedBy;
@@ -3748,13 +3758,13 @@ function renderExamList() {
   body.innerHTML = '';
   const sortedItems = sortExamListRows(supabaseExamRows.map(buildExamListRowModel));
   sortedItems.forEach(item => {
-    const { examCode, patientCode, durationSeconds, examStatus, reviewedBy, myReviewStatus, accuracyValue } = item;
+    const { examCode, patientCode, durationSeconds, examStatus, displayExamStatus, reviewedBy, myReviewStatus, accuracyValue } = item;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><button type="button" class="exam-row-btn" data-exam-code="${examCode}">${examCode}</button></td>
       <td>${patientCode}</td>
       <td>${formatDurationSeconds(durationSeconds)}</td>
-      <td><span class="exam-status ${statusClass(examStatus)}">${examStatus.replace(/_/g, ' ')}</span></td>
+      <td><span class="exam-status ${statusClass(displayExamStatus || examStatus)}">${String(displayExamStatus || examStatus).replace(/_/g, ' ')}</span></td>
       <td>${reviewedBy}</td>
       <td><span class="exam-status ${myReviewStatus === 'completed' ? 'status-completed' : statusClass(myReviewStatus)}">${myReviewStatus}</span></td>
       <td>${
@@ -4004,7 +4014,7 @@ async function openExamFromList(examCode) {
   const row = supabaseExamRows.find(item => (item.exam_code || item.source_file_name || item.id) === examCode) || null;
   const payloadPath = getViewerPayloadRelativePath(row?.metadata?.viewer_payload_storage_path);
   if (!row || row.status !== 'ready' || !payloadPath) {
-    alert('This exam is still processing and is not ready in the viewer yet.');
+    alert('This exam is queued or still processing and is not ready in the viewer yet.');
     return;
   }
   setSelectedExam(examCode);
