@@ -1791,7 +1791,7 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
     <button class="tb-btn" id="btn-logout" type="button">Sign out</button>
   </div>
 
-  <input type="file" id="file-input" accept=".edf">
+  <input type="file" id="file-input" accept=".edf" multiple>
 </div>
 
 <!-- ── APP ──────────────────────────────────────────────────────────── -->
@@ -1927,7 +1927,7 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
           <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/>
           <path d="M7 10l2.5 2.5L14 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Choose EDF From Computer
+        Choose EDF File(s) From Computer
       </button>
       <button class="btn-primary" id="btn-analyze" disabled onclick="startAnalysis()" style="display:none;">
         Analyze
@@ -1935,7 +1935,7 @@ body.sidebar-collapsed .viewer-side-toggle-icon::before {
 
       <div id="upload-feedback" style="min-height:18px;font-size:13px;color:var(--text-2);"></div>
 
-      <div class="upload-hint">.edf · EDF+ · up to ~2 GB</div>
+      <div class="upload-hint">.edf · EDF+ · up to ~2 GB each</div>
     </div>
 
     <div class="info-row">
@@ -2311,11 +2311,11 @@ let uploadExamInFlight = false;
 const RAW_EDF_BUCKET = 'eeg-raw-edf';
 
 fileInput.addEventListener('change', e => {
-  if (e.target.files[0]) {
+  if (e.target.files?.length) {
     if (currentAppState === 'upload' && canUploadExams()) {
-      queueUploadedExam(e.target.files[0]).catch(error => {
+      queueUploadedExamBatch(Array.from(e.target.files)).catch(error => {
         console.error(error);
-        setUploadFeedback(error.message || 'Could not queue this EDF.', true);
+        setUploadFeedback(error.message || 'Could not queue these EDFs.', true);
       });
       return;
     }
@@ -2331,16 +2331,16 @@ dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-ove
 dropZone.addEventListener('drop', e => {
   e.preventDefault();
   dropZone.classList.remove('drag-over');
-  const f = e.dataTransfer.files[0];
-  if (!f || !f.name.toLowerCase().endsWith('.edf')) return;
+  const files = Array.from(e.dataTransfer.files || []).filter(f => f?.name?.toLowerCase().endsWith('.edf'));
+  if (!files.length) return;
   if (currentAppState === 'upload' && canUploadExams()) {
-    queueUploadedExam(f).catch(error => {
+    queueUploadedExamBatch(files).catch(error => {
       console.error(error);
-      setUploadFeedback(error.message || 'Could not queue this EDF.', true);
+      setUploadFeedback(error.message || 'Could not queue these EDFs.', true);
     });
     return;
   }
-  setFile(f);
+  setFile(files[0]);
 });
 dropZone.addEventListener('click', e => {
   if (e.target.closest('button, select, option, input, .tb-select, .btn-primary, .file-pill')) return;
@@ -2480,6 +2480,53 @@ function buildUploadedExamCode(fileName) {
   return `${stem}-${stamp}-${random}`;
 }
 
+async function queueUploadedExamSingle(file) {
+  const examCode = buildUploadedExamCode(file.name);
+  const patientCode = sanitizeExamCodePart(file.name) || examCode;
+  const storagePath = `uploads/${examCode}/source.edf`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from(RAW_EDF_BUCKET)
+    .upload(storagePath, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+  if (uploadError) throw new Error(`Could not upload EDF: ${uploadError.message}`);
+
+  const { data: examRow, error: examError } = await supabaseClient
+    .from('exams')
+    .insert({
+      exam_code: examCode,
+      source_file_name: file.name,
+      edf_storage_path: storagePath,
+      status: 'processing_ai',
+      patient_code: patientCode,
+      uploaded_by: currentProfile?.id || null,
+      metadata: {
+        upload_origin: 'web',
+        upload_received_at: new Date().toISOString(),
+        ingest_state: 'queued',
+      },
+    })
+    .select('id')
+    .single();
+  if (examError) throw new Error(`Could not create exam row: ${examError.message}`);
+
+  const { error: aiReviewError } = await supabaseClient
+    .from('exam_ai_reviews')
+    .insert({
+      exam_id: examRow.id,
+      model_name: 'LightGBM',
+      model_version: 'v1',
+      pipeline_version: 'chunked-upload',
+      review_status: 'pending',
+      summary: {
+        ingest_state: 'queued',
+        raw_edf_storage_path: storagePath,
+      },
+    });
+  if (aiReviewError) throw new Error(`Could not create AI review row: ${aiReviewError.message}`);
+
+  return { examCode, examRow };
+}
+
 async function queueUploadedExam(file) {
   if (!canUploadExams()) return;
   if (!file || !file.name?.toLowerCase().endsWith('.edf')) {
@@ -2492,50 +2539,8 @@ async function queueUploadedExam(file) {
   const uploadBtn = document.getElementById('btn-upload-file');
   if (uploadBtn) uploadBtn.setAttribute('disabled', 'disabled');
 
-  const examCode = buildUploadedExamCode(file.name);
-  const patientCode = sanitizeExamCodePart(file.name) || examCode;
-  const storagePath = `uploads/${examCode}/source.edf`;
-
   try {
-    const { error: uploadError } = await supabaseClient.storage
-      .from(RAW_EDF_BUCKET)
-      .upload(storagePath, file, { contentType: file.type || 'application/octet-stream', upsert: false });
-    if (uploadError) throw new Error(`Could not upload EDF: ${uploadError.message}`);
-
-    const { data: examRow, error: examError } = await supabaseClient
-      .from('exams')
-      .insert({
-        exam_code: examCode,
-        source_file_name: file.name,
-        edf_storage_path: storagePath,
-        status: 'processing_ai',
-        patient_code: patientCode,
-        uploaded_by: currentProfile?.id || null,
-        metadata: {
-          upload_origin: 'web',
-          upload_received_at: new Date().toISOString(),
-          ingest_state: 'queued',
-        },
-      })
-      .select('id')
-      .single();
-    if (examError) throw new Error(`Could not create exam row: ${examError.message}`);
-
-    const { error: aiReviewError } = await supabaseClient
-      .from('exam_ai_reviews')
-      .insert({
-        exam_id: examRow.id,
-        model_name: 'LightGBM',
-        model_version: 'v1',
-        pipeline_version: 'chunked-upload',
-        review_status: 'pending',
-        summary: {
-          ingest_state: 'queued',
-          raw_edf_storage_path: storagePath,
-        },
-      });
-    if (aiReviewError) throw new Error(`Could not create AI review row: ${aiReviewError.message}`);
-
+    await queueUploadedExamSingle(file);
     setUploadFeedback('Upload received. The exam is queued for manual processing. Returning to the worklist…');
     fileInput.value = '';
     filePill.classList.remove('visible');
@@ -2547,6 +2552,50 @@ async function queueUploadedExam(file) {
     uploadExamInFlight = false;
     if (uploadBtn) uploadBtn.removeAttribute('disabled');
   }
+}
+
+async function queueUploadedExamBatch(files) {
+  const validFiles = (files || []).filter(file => file?.name?.toLowerCase().endsWith('.edf'));
+  if (!validFiles.length) throw new Error('Please choose at least one valid .edf file.');
+  if (uploadExamInFlight) return;
+
+  const uploadBtn = document.getElementById('btn-upload-file');
+  if (uploadBtn) uploadBtn.setAttribute('disabled', 'disabled');
+  btnAnalyze.disabled = true;
+  uploadExamInFlight = true;
+
+  let completed = 0;
+  const failures = [];
+
+  try {
+    for (const file of validFiles) {
+      setUploadFeedback(`Queueing ${completed + 1}/${validFiles.length}: ${file.name}`);
+      try {
+        await queueUploadedExamSingle(file);
+        completed += 1;
+      } catch (error) {
+        failures.push({ file: file.name, message: error?.message || 'Unknown upload error' });
+      }
+    }
+  } finally {
+    uploadExamInFlight = false;
+    if (uploadBtn) uploadBtn.removeAttribute('disabled');
+    fileInput.value = '';
+    filePill.classList.remove('visible');
+    pillName.textContent = '—';
+    currentFile = null;
+  }
+
+  await loadSupabaseExams();
+  showExamList();
+
+  if (!failures.length) {
+    setUploadFeedback(`${completed} exam(s) queued successfully.`);
+    return;
+  }
+
+  const firstFailure = failures[0];
+  setUploadFeedback(`${completed}/${validFiles.length} queued. First failure: ${firstFailure.file} — ${firstFailure.message}`, true);
 }
 
 function setFile(f) {
